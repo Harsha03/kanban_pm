@@ -2,8 +2,8 @@ import { moveCard, type Column } from "@/lib/kanban";
 
 describe("moveCard", () => {
   const baseColumns: Column[] = [
-    { id: "col-a", title: "A", cardIds: ["card-1", "card-2"] },
-    { id: "col-b", title: "B", cardIds: ["card-3"] },
+    { id: "col-a", title: "A", color: "#3B82F6", icon: "inbox", cardIds: ["card-1", "card-2"] },
+    { id: "col-b", title: "B", color: "#8B5CF6", icon: "search", cardIds: ["card-3"] },
   ];
 
   it("reorders cards in the same column", () => {

@@ -1,12 +1,18 @@
 import { useState, type FormEvent } from "react";
+import type { PriorityLevel } from "@/lib/kanban";
 
-const initialFormState = { title: "", details: "" };
+const initialFormState: {
+  title: string;
+  details: string;
+  priority: PriorityLevel;
+} = { title: "", details: "", priority: "medium" };
 
 type NewCardFormProps = {
-  onAdd: (title: string, details: string) => void;
+  onAdd: (title: string, details: string, priority: PriorityLevel) => void;
+  disabled?: boolean;
 };
 
-export const NewCardForm = ({ onAdd }: NewCardFormProps) => {
+export const NewCardForm = ({ onAdd, disabled = false }: NewCardFormProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [formState, setFormState] = useState(initialFormState);
 
@@ -15,7 +21,7 @@ export const NewCardForm = ({ onAdd }: NewCardFormProps) => {
     if (!formState.title.trim()) {
       return;
     }
-    onAdd(formState.title.trim(), formState.details.trim());
+    onAdd(formState.title.trim(), formState.details.trim(), formState.priority);
     setFormState(initialFormState);
     setIsOpen(false);
   };
@@ -32,6 +38,7 @@ export const NewCardForm = ({ onAdd }: NewCardFormProps) => {
             placeholder="Card title"
             className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
             required
+            disabled={disabled}
           />
           <textarea
             value={formState.details}
@@ -41,11 +48,29 @@ export const NewCardForm = ({ onAdd }: NewCardFormProps) => {
             placeholder="Details"
             rows={3}
             className="w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--gray-text)] outline-none transition focus:border-[var(--primary-blue)]"
+            disabled={disabled}
           />
+          <select
+            value={formState.priority}
+            onChange={(event) =>
+              setFormState((prev) => ({
+                ...prev,
+                priority: event.target.value as PriorityLevel,
+              }))
+            }
+            className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+            disabled={disabled}
+          >
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
           <div className="flex items-center gap-2">
             <button
               type="submit"
               className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110"
+              disabled={disabled}
             >
               Add card
             </button>
@@ -56,6 +81,7 @@ export const NewCardForm = ({ onAdd }: NewCardFormProps) => {
                 setFormState(initialFormState);
               }}
               className="rounded-full border border-[var(--stroke)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+              disabled={disabled}
             >
               Cancel
             </button>
@@ -66,6 +92,7 @@ export const NewCardForm = ({ onAdd }: NewCardFormProps) => {
           type="button"
           onClick={() => setIsOpen(true)}
           className="w-full rounded-full border border-dashed border-[var(--stroke)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--primary-blue)] transition hover:border-[var(--primary-blue)]"
+          disabled={disabled}
         >
           Add a card
         </button>
