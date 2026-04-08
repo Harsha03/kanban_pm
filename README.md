@@ -14,8 +14,8 @@ Kanban PM is a single-board project management app with a Next.js frontend, Fast
 ## Tech Stack
 
 - Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS, dnd-kit
-- Backend: FastAPI, SQLModel/SQLite, uv
-- Tooling: Vitest, Playwright, ESLint, Docker
+- Backend: FastAPI, SQLite, python-dotenv, uv
+- Tooling: Vitest, Playwright, pytest, ESLint, Docker
 
 ## Repository Layout
 
@@ -65,15 +65,27 @@ Then open `http://localhost:8000`.
 
 ## Environment
 
-Set required environment variables in `.env`.  
-For AI features, include `OPENROUTER_API_KEY`.
+Copy `.env.example` to `.env` and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+The backend auto-loads `.env` from the project root via python-dotenv.
+For AI features, set `OPENROUTER_API_KEY`.
 
 ## Testing
 
-From `frontend/`:
+Frontend (from `frontend/`):
 
 ```bash
 npm run lint
 npm run test:unit
 npm run test:e2e
+```
+
+Backend (from repo root):
+
+```bash
+uv run pytest
 ```

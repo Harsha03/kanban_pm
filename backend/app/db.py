@@ -92,8 +92,29 @@ def _ensure_board_for_user(conn: sqlite3.Connection, username: str) -> dict:
 
 
 def _normalize_board_shape(board: dict) -> dict:
+    """
+    Ensure board data has all required fields for backwards compatibility.
+
+    This function patches boards that were created before new fields were added,
+    preventing validation errors when the schema evolves. It runs automatically
+    on board read operations.
+
+    Added fields:
+    - columns.color (added in schema v2)
+    - columns.icon (added in schema v2)
+    - cards.priority (added in schema v3)
+
+    Args:
+        board: Raw board dictionary from database
+
+    Returns:
+        Board dictionary with all required fields populated
+    """
+    # Create lookup map of default columns for fallback values
     default_columns = {column["id"]: column for column in DEFAULT_BOARD["columns"]}
     columns = board.get("columns", [])
+
+    # Patch missing color and icon fields in columns
     for index, column in enumerate(columns):
         if "color" not in column:
             fallback = default_columns.get(column.get("id"))
@@ -106,6 +127,7 @@ def _normalize_board_shape(board: dict) -> dict:
                 fallback["icon"] if fallback is not None else "inbox"
             )
 
+    # Patch missing priority field in cards
     cards = board.get("cards", {})
     for card_id, card in cards.items():
         if "priority" not in card:

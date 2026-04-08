@@ -3,11 +3,8 @@ import os
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from backend.app.config import AIConfig, get_openrouter_api_key
 from backend.app.models import AIChatStructuredResponse, BoardData, ChatHistoryItem
-
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-OPENROUTER_MODEL = "anthropic/claude-sonnet-4.6"
-MAX_HISTORY_ITEMS = 10
 
 
 class AIUnavailableError(Exception):
@@ -105,18 +102,37 @@ STRUCTURED_RESPONSE_SCHEMA = {
 
 
 def is_ai_enabled() -> bool:
-    return bool(os.getenv("OPENROUTER_API_KEY"))
+    return bool(get_openrouter_api_key())
 
 
 def _extract_json_object(text: str) -> dict:
+    """
+    Extract JSON object from AI response with multiple fallback strategies.
+
+    The AI might return JSON in various formats:
+    1. Plain JSON: {"reply": "..."}
+    2. Markdown fenced: ```json\n{"reply": "..."}\n```
+    3. With explanation: Here is the response: {"reply": "..."}
+
+    Args:
+        text: Raw AI response text
+
+    Returns:
+        Parsed JSON dictionary
+
+    Raises:
+        json.JSONDecodeError: If no valid JSON object can be extracted
+    """
     stripped = text.strip()
-    # Handle fenced markdown JSON blocks.
+
+    # Strategy 1: Strip markdown code fences
     if stripped.startswith("```"):
         stripped = stripped.strip("`").strip()
+        # Remove 'json' language hint if present
         if stripped.startswith("json"):
             stripped = stripped[4:].strip()
 
-    # First try direct parse.
+    # Strategy 2: Try direct JSON parse (most common case)
     try:
         parsed = json.loads(stripped)
         if isinstance(parsed, dict):
@@ -124,7 +140,8 @@ def _extract_json_object(text: str) -> dict:
     except json.JSONDecodeError:
         pass
 
-    # Fallback: locate first {...} span and parse.
+    # Strategy 3: Extract first JSON object from surrounding text
+    # Find first '{' and last '}' to isolate JSON object
     start = stripped.find("{")
     end = stripped.rfind("}")
     if start != -1 and end != -1 and end > start:
@@ -161,20 +178,20 @@ def _extract_message_content(payload: dict) -> str:
 def call_openrouter(
     messages: list[dict[str, str]], response_format: dict | None = None
 ) -> str:
-    api_key = os.getenv("OPENROUTER_API_KEY")
+    api_key = get_openrouter_api_key()
     if not api_key:
         raise AIUnavailableError("OPENROUTER_API_KEY is not set.")
 
     payload = {
-        "model": OPENROUTER_MODEL,
+        "model": AIConfig.OPENROUTER_MODEL,
         "messages": messages,
-        "temperature": 0,
+        "temperature": AIConfig.TEMPERATURE,
     }
     if response_format:
         payload["response_format"] = response_format
     body = json.dumps(payload).encode("utf-8")
     request = Request(
-        OPENROUTER_URL,
+        AIConfig.OPENROUTER_URL,
         data=body,
         method="POST",
         headers={
@@ -185,7 +202,7 @@ def call_openrouter(
     )
 
     try:
-        with urlopen(request, timeout=30) as response:
+        with urlopen(request, timeout=AIConfig.TIMEOUT_SECONDS) as response:
             response_body = response.read().decode("utf-8")
     except HTTPError as exc:
         detail = exc.read().decode("utf-8") if exc.fp else str(exc)
@@ -208,7 +225,7 @@ def run_connectivity_test() -> dict[str, str]:
             {"role": "user", "content": "What is 2+2? Reply with just the number."},
         ]
     )
-    return {"model": OPENROUTER_MODEL, "answer": answer}
+    return {"model": AIConfig.OPENROUTER_MODEL, "answer": answer}
 
 
 def run_structured_board_chat(
@@ -220,7 +237,7 @@ def run_structured_board_chat(
         "If no change is required, set board_update to null."
     )
 
-    trimmed_history = history[-MAX_HISTORY_ITEMS:]
+    trimmed_history = history[-AIConfig.MAX_HISTORY_ITEMS:]
     context_prompt = (
         "Current board JSON:\n"
         f"{board.model_dump_json()}\n\n"

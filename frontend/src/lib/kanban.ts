@@ -185,11 +185,24 @@ const findColumnId = (columns: Column[], id: string) => {
   return columns.find((column) => column.cardIds.includes(id))?.id;
 };
 
+/**
+ * Moves a card within or between columns based on drag-and-drop interaction.
+ * Handles three scenarios:
+ * 1. Reordering within the same column (drop on card)
+ * 2. Moving to end of same column (drop on column header)
+ * 3. Moving to different column (drop on card or column header)
+ *
+ * @param columns - Current board columns
+ * @param activeId - ID of the card being dragged
+ * @param overId - ID of the drop target (either a card ID or column ID)
+ * @returns Updated columns array with card moved
+ */
 export const moveCard = (
   columns: Column[],
   activeId: string,
   overId: string
 ): Column[] => {
+  // Find which columns contain the active and over elements
   const activeColumnId = findColumnId(columns, activeId);
   const overColumnId = findColumnId(columns, overId);
 
@@ -204,9 +217,12 @@ export const moveCard = (
     return columns;
   }
 
+  // Check if dropping on a column header vs a card
   const isOverColumn = isColumnId(columns, overId);
 
+  // CASE 1: Moving within the same column
   if (activeColumnId === overColumnId) {
+    // Dropped on the column header - move to end of column
     if (isOverColumn) {
       const nextCardIds = activeColumn.cardIds.filter(
         (cardId) => cardId !== activeId
@@ -219,6 +235,7 @@ export const moveCard = (
       );
     }
 
+    // Dropped on another card in same column - reorder
     const oldIndex = activeColumn.cardIds.indexOf(activeId);
     const newIndex = activeColumn.cardIds.indexOf(overId);
 
@@ -226,6 +243,7 @@ export const moveCard = (
       return columns;
     }
 
+    // Remove from old position and insert at new position
     const nextCardIds = [...activeColumn.cardIds];
     nextCardIds.splice(oldIndex, 1);
     nextCardIds.splice(newIndex, 0, activeId);
@@ -237,23 +255,29 @@ export const moveCard = (
     );
   }
 
+  // CASE 2: Moving to a different column
   const activeIndex = activeColumn.cardIds.indexOf(activeId);
   if (activeIndex === -1) {
     return columns;
   }
 
+  // Remove card from source column
   const nextActiveCardIds = [...activeColumn.cardIds];
   nextActiveCardIds.splice(activeIndex, 1);
 
+  // Add card to destination column
   const nextOverCardIds = [...overColumn.cardIds];
   if (isOverColumn) {
+    // Dropped on column header - add to end
     nextOverCardIds.push(activeId);
   } else {
+    // Dropped on a card - insert before that card
     const overIndex = overColumn.cardIds.indexOf(overId);
     const insertIndex = overIndex === -1 ? nextOverCardIds.length : overIndex;
     nextOverCardIds.splice(insertIndex, 0, activeId);
   }
 
+  // Update both columns in the columns array
   return columns.map((column) => {
     if (column.id === activeColumnId) {
       return { ...column, cardIds: nextActiveCardIds };
