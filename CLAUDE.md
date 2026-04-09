@@ -80,6 +80,7 @@ All API routes defined in `backend/app/main.py`:
 - `POST /api/auth/register` - Create new user account (returns JWT)
 - `POST /api/auth/login` - Login with credentials (returns JWT)
 - `GET /api/auth/me` - Get current user info (requires JWT)
+- `POST /api/auth/change-password` - Change password (requires JWT)
 
 **Multi-board (requires JWT auth):**
 - `GET /api/boards` - List user's boards
@@ -89,6 +90,7 @@ All API routes defined in `backend/app/main.py`:
 - `PATCH /api/boards/{board_id}` - Update board name/description
 - `DELETE /api/boards/{board_id}` - Delete a board
 - `GET /api/boards/{board_id}/export` - Export board as JSON
+- `POST /api/boards/{board_id}/duplicate` - Duplicate a board
 - `POST /api/boards/import` - Import board from JSON export
 - `POST /api/ai/chat/{board_id}` - AI chat scoped to a board (requires JWT)
 
