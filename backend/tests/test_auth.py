@@ -138,3 +138,58 @@ def test_default_user_can_login(monkeypatch, tmp_path: Path) -> None:
         response = _login(client, username="user", password="password")
         assert response.status_code == 200
         assert response.json()["user"]["username"] == "user"
+
+
+def test_change_password(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("PM_DB_PATH", str(tmp_path / "pm.db"))
+    with TestClient(app) as client:
+        resp = _register(client)
+        token = resp.json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # Change password
+        resp = client.post(
+            "/api/auth/change-password",
+            json={"currentPassword": "testpass123", "newPassword": "newpass456"},
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+
+        # Old password should fail
+        resp = _login(client, password="testpass123")
+        assert resp.status_code == 401
+
+        # New password should work
+        resp = _login(client, password="newpass456")
+        assert resp.status_code == 200
+
+
+def test_change_password_wrong_current(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("PM_DB_PATH", str(tmp_path / "pm.db"))
+    with TestClient(app) as client:
+        resp = _register(client)
+        token = resp.json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        resp = client.post(
+            "/api/auth/change-password",
+            json={"currentPassword": "wrongpassword", "newPassword": "newpass456"},
+            headers=headers,
+        )
+        assert resp.status_code == 401
+
+
+def test_change_password_too_short(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("PM_DB_PATH", str(tmp_path / "pm.db"))
+    with TestClient(app) as client:
+        resp = _register(client)
+        token = resp.json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        resp = client.post(
+            "/api/auth/change-password",
+            json={"currentPassword": "testpass123", "newPassword": "ab"},
+            headers=headers,
+        )
+        assert resp.status_code == 422

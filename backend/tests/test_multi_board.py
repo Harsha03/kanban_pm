@@ -327,6 +327,37 @@ def test_export_import_roundtrip_preserves_data(monkeypatch, tmp_path: Path) -> 
             assert orig_col["color"] == imp_col["color"]
 
 
+def test_duplicate_board(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("PM_DB_PATH", str(tmp_path / "pm.db"))
+    with TestClient(app) as client:
+        token = _register_and_get_token(client)
+        boards = client.get("/api/boards", headers=_auth_header(token)).json()
+        board_id = boards[0]["id"]
+
+        response = client.post(
+            f"/api/boards/{board_id}/duplicate", headers=_auth_header(token)
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["name"] == "My Board (copy)"
+        assert "id" in body
+        assert body["id"] != board_id
+
+        # Verify we now have 2 boards
+        boards_after = client.get("/api/boards", headers=_auth_header(token)).json()
+        assert len(boards_after) == 2
+
+
+def test_duplicate_nonexistent_board_returns_404(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("PM_DB_PATH", str(tmp_path / "pm.db"))
+    with TestClient(app) as client:
+        token = _register_and_get_token(client)
+        response = client.post(
+            "/api/boards/99999/duplicate", headers=_auth_header(token)
+        )
+        assert response.status_code == 404
+
+
 def test_multiple_boards_per_user(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("PM_DB_PATH", str(tmp_path / "pm.db"))
     with TestClient(app) as client:

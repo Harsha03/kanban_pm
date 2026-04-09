@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -29,6 +29,7 @@ import {
 } from "@/lib/kanban";
 import { fetchBoard, fetchBoardById, persistBoard, persistBoardById, sendAIChat, sendAIChatForBoard, type AIChatHistoryItem } from "@/lib/api";
 import { STAGE_ICON_MAP } from "@/lib/stage-icons";
+import { useKeyboardShortcuts } from "@/lib/use-keyboard-shortcuts";
 
 const LOCAL_BOARD_STORAGE_KEY = "pm-local-board";
 
@@ -85,6 +86,37 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
   const [filterPriority, setFilterPriority] = useState<PriorityLevel | "all">("all");
   const [filterLabelId, setFilterLabelId] = useState<string | "all">("all");
   const [newCommentText, setNewCommentText] = useState("");
+  const [sortMode, setSortMode] = useState<"manual" | "priority" | "due-date" | "title">("manual");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useKeyboardShortcuts(
+    useMemo(
+      () => ({
+        "/": () => searchInputRef.current?.focus(),
+        "n": () => {
+          if (board && board.columns.length > 0 && !editingCard && !addCardState) {
+            setAddCardState({
+              columnId: board.columns[0].id,
+              title: "",
+              details: "",
+              priority: "medium",
+              dueDate: null,
+            });
+          }
+        },
+        "?": () => setIsChatOpen((prev) => !prev),
+        "Escape": () => {
+          if (editingCard) setEditingCard(null);
+          else if (addCardState) setAddCardState(null);
+          else if (isLabelManagerOpen) setIsLabelManagerOpen(false);
+          else if (isChatOpen) setIsChatOpen(false);
+          else if (openStagePopupColumnId) setOpenStagePopupColumnId(null);
+          else if (pendingStageRemoval) setPendingStageRemoval(null);
+        },
+      }),
+      [board, editingCard, addCardState, isLabelManagerOpen, isChatOpen, openStagePopupColumnId, pendingStageRemoval]
+    )
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -187,15 +219,41 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
   const filteredColumns = useMemo(() => {
     if (!board) return [];
     const hasFilter = searchQuery || filterPriority !== "all" || filterLabelId !== "all";
-    if (!hasFilter) return board.columns;
-    return board.columns.map((col) => ({
-      ...col,
-      cardIds: col.cardIds.filter((cid) => {
-        const card = board.cards[cid];
-        return card ? isCardVisible(card) : false;
-      }),
-    }));
-  }, [board, searchQuery, filterPriority, filterLabelId, isCardVisible]);
+    const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+
+    const sortCardIds = (cardIds: string[]) => {
+      if (sortMode === "manual") return cardIds;
+      return [...cardIds].sort((a, b) => {
+        const cardA = board.cards[a];
+        const cardB = board.cards[b];
+        if (!cardA || !cardB) return 0;
+        if (sortMode === "priority") {
+          return (priorityOrder[cardA.priority] ?? 2) - (priorityOrder[cardB.priority] ?? 2);
+        }
+        if (sortMode === "due-date") {
+          if (!cardA.dueDate && !cardB.dueDate) return 0;
+          if (!cardA.dueDate) return 1;
+          if (!cardB.dueDate) return -1;
+          return cardA.dueDate.localeCompare(cardB.dueDate);
+        }
+        if (sortMode === "title") {
+          return cardA.title.localeCompare(cardB.title);
+        }
+        return 0;
+      });
+    };
+
+    return board.columns.map((col) => {
+      let cardIds = col.cardIds;
+      if (hasFilter) {
+        cardIds = cardIds.filter((cid) => {
+          const card = board.cards[cid];
+          return card ? isCardVisible(card) : false;
+        });
+      }
+      return { ...col, cardIds: sortCardIds(cardIds) };
+    });
+  }, [board, searchQuery, filterPriority, filterLabelId, isCardVisible, sortMode]);
 
   const applyBoardUpdate = useCallback(
     async (transform: (current: BoardData) => BoardData) => {
@@ -795,7 +853,8 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search cards..."
+                ref={searchInputRef}
+                placeholder="Search cards... (press /)"
                 className="w-full rounded-full border border-[var(--stroke)] bg-white py-2 pl-9 pr-8 text-xs font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
                 data-testid="search-cards"
               />
@@ -834,6 +893,17 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                 ))}
               </select>
             ) : null}
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as typeof sortMode)}
+              className="rounded-full border border-[var(--stroke)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] outline-none"
+              data-testid="sort-mode"
+            >
+              <option value="manual">Manual order</option>
+              <option value="priority">Sort: Priority</option>
+              <option value="due-date">Sort: Due date</option>
+              <option value="title">Sort: Title</option>
+            </select>
             <button
               type="button"
               onClick={() => setIsLabelManagerOpen(true)}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { PlusCircle, Trash2, Pencil, LayoutDashboard, Download, Upload } from "lucide-react";
+import { PlusCircle, Trash2, Pencil, LayoutDashboard, Download, Upload, Copy, KeyRound } from "lucide-react";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import {
   listBoards,
@@ -10,6 +10,8 @@ import {
   updateBoardMeta,
   exportBoard,
   importBoard,
+  duplicateBoard,
+  changePassword,
   type BoardSummary,
 } from "@/lib/api";
 
@@ -33,6 +35,11 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
   } | null>(null);
   const [newBoardTemplate, setNewBoardTemplate] = useState<string>("kanban");
   const [pendingDelete, setPendingDelete] = useState<BoardSummary | null>(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   const loadBoards = useCallback(async () => {
     setIsLoading(true);
@@ -117,6 +124,15 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
     }
   };
 
+  const handleDuplicateBoard = async (boardId: number) => {
+    try {
+      await duplicateBoard(boardId);
+      await loadBoards();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to duplicate board");
+    }
+  };
+
   const handleImportBoard = async (file: File) => {
     try {
       const text = await file.text();
@@ -130,6 +146,24 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
       await loadBoards();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to import board");
+    }
+  };
+
+  const handleChangePassword = async (event: FormEvent) => {
+    event.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(false);
+    if (newPassword.length < 6) {
+      setPasswordError("New password must be at least 6 characters");
+      return;
+    }
+    try {
+      await changePassword(currentPassword, newPassword);
+      setPasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : "Failed to change password");
     }
   };
 
@@ -212,6 +246,20 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
             </label>
             <button
               type="button"
+              onClick={() => {
+                setIsChangingPassword(true);
+                setPasswordError(null);
+                setPasswordSuccess(false);
+                setCurrentPassword("");
+                setNewPassword("");
+              }}
+              className="flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)]"
+            >
+              <KeyRound className="h-4 w-4" />
+              Password
+            </button>
+            <button
+              type="button"
               onClick={onLogout}
               className="rounded-full border border-[var(--stroke)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)]"
             >
@@ -253,6 +301,17 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
                     ) : null}
                   </div>
                   <div className="flex shrink-0 gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDuplicateBoard(board.id);
+                      }}
+                      className="rounded-full p-2 text-[var(--gray-text)] transition hover:bg-[var(--surface)] hover:text-[var(--navy-dark)]"
+                      aria-label={`Duplicate ${board.name}`}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -523,6 +582,74 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
                 Delete board
               </button>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Change Password Modal */}
+      {isChangingPassword ? (
+        <div
+          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(3,33,71,0.35)] px-4 backdrop-blur-[2px]"
+          onClick={() => setIsChangingPassword(false)}
+        >
+          <div
+            className="modal-dialog-enter w-full max-w-md rounded-3xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+              Security
+            </p>
+            <h3 className="mt-2 font-display text-xl font-semibold text-[var(--navy-dark)]">
+              Change password
+            </h3>
+            <form className="mt-5 space-y-4" onSubmit={handleChangePassword}>
+              <div>
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+                  Current password
+                </label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+                  New password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                />
+              </div>
+              {passwordError ? (
+                <p className="text-sm font-medium text-red-600">{passwordError}</p>
+              ) : null}
+              {passwordSuccess ? (
+                <p className="text-sm font-medium text-green-600">Password changed successfully!</p>
+              ) : null}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsChangingPassword(false)}
+                  className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
+                  disabled={!currentPassword || !newPassword}
+                >
+                  Update password
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       ) : null}

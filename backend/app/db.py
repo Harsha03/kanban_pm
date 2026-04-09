@@ -217,6 +217,17 @@ def get_user_by_id(user_id: int) -> dict | None:
         return dict(row)
 
 
+def get_user_by_id_with_hash(user_id: int) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT id, username, password_hash FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return dict(row)
+
+
 # --- Board management (multi-board) ---
 
 

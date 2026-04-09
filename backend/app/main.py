@@ -24,6 +24,7 @@ from backend.app.db import (
     get_board,
     get_board_by_id,
     get_user_by_id,
+    get_user_by_id_with_hash,
     get_user_by_username,
     initialize_database,
     list_boards,
@@ -138,6 +139,31 @@ def get_me(auth: dict = Depends(require_auth)) -> UserResponse:
     return UserResponse(id=user["id"], username=user["username"])
 
 
+@app.post("/api/auth/change-password", tags=["Auth"])
+def change_password(
+    payload: dict, auth: dict = Depends(require_auth)
+) -> dict:
+    current_password = payload.get("currentPassword", "")
+    new_password = payload.get("newPassword", "")
+    if not current_password or not new_password:
+        raise HTTPException(status_code=422, detail="Both current and new passwords are required")
+    if len(new_password) < 6:
+        raise HTTPException(status_code=422, detail="New password must be at least 6 characters")
+
+    user = get_user_by_id_with_hash(auth["sub"])
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not verify_password(current_password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    from backend.app.db import get_connection
+    new_hash = hash_password(new_password)
+    with get_connection() as conn:
+        conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, auth["sub"]))
+        conn.commit()
+    return {"success": True}
+
+
 # --- Multi-board endpoints ---
 
 
@@ -202,6 +228,23 @@ def export_board(board_id: int, auth: dict = Depends(require_auth)) -> dict:
         "description": result["description"],
         "board": result["board"],
     }
+
+
+@app.post("/api/boards/{board_id}/duplicate", tags=["Boards"])
+def duplicate_board(board_id: int, auth: dict = Depends(require_auth)) -> dict:
+    """Duplicate an existing board with all its data."""
+    result = get_board_by_id(board_id, auth["sub"])
+    if result is None:
+        raise HTTPException(status_code=404, detail="Board not found")
+    new_name = f"{result['name']} (copy)"
+    from backend.app.db import _create_board_for_user, get_connection
+
+    with get_connection() as conn:
+        new_board = _create_board_for_user(
+            conn, auth["sub"], new_name, result["description"], result["board"]
+        )
+        conn.commit()
+        return new_board
 
 
 @app.post("/api/boards/import", tags=["Boards"])

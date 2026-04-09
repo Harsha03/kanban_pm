@@ -140,6 +140,31 @@ export const sendAIChatForBoard = async (
   return (await response.json()) as AIChatResponse;
 };
 
+// --- Password change ---
+
+export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+  const response = await authFetch("/api/auth/change-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
+};
+
+// --- Board duplication ---
+
+export const duplicateBoard = async (boardId: number): Promise<{ id: number; name: string; description: string }> => {
+  const response = await authFetch(`/api/boards/${boardId}/duplicate`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
+  return await response.json();
+};
+
 // --- Board export/import ---
 
 export const exportBoard = async (boardId: number): Promise<{ name: string; description: string; board: BoardData }> => {
