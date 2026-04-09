@@ -58,6 +58,8 @@ type AddCardState = {
 
 export const KanbanBoard = ({ username = "user", useApi = true, boardId }: KanbanBoardProps) => {
   const [board, setBoard] = useState<BoardData | null>(useApi ? null : initialData);
+  const [boardName, setBoardName] = useState("Kanban Studio");
+  const [boardDescription, setBoardDescription] = useState("");
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(useApi);
   const [isSaving, setIsSaving] = useState(false);
@@ -155,6 +157,10 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
         if (boardId !== undefined) {
           const detail = await fetchBoardById(boardId);
           loaded = detail.board;
+          if (!cancelled) {
+            setBoardName(detail.name);
+            setBoardDescription(detail.description);
+          }
         } else {
           loaded = await fetchBoard(username);
         }
@@ -696,7 +702,11 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
       byPriority[card.priority]++;
       if (card.dueDate && new Date(card.dueDate) < today) overdue++;
     }
-    return { total, byPriority, overdue, columns: board.columns.length };
+    // Progress: cards in the last column are "done"
+    const lastColumn = board.columns[board.columns.length - 1];
+    const doneCount = lastColumn ? lastColumn.cardIds.length : 0;
+    const progressPercent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+    return { total, byPriority, overdue, columns: board.columns.length, doneCount, progressPercent };
   }, [board]);
 
   const activeCard = activeCardId ? cardsById[activeCardId] : null;
@@ -794,15 +804,20 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--gray-text)]">
-                Single Board Kanban
+                Project Board
               </p>
               <h1 className="mt-3 font-display text-4xl font-semibold text-[var(--navy-dark)]">
-                Kanban Studio
+                {boardName}
               </h1>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--gray-text)]">
-                Keep momentum visible. Rename columns, drag cards between stages,
-                and capture quick notes without getting buried in settings.
-              </p>
+              {boardDescription ? (
+                <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--gray-text)]">
+                  {boardDescription}
+                </p>
+              ) : (
+                <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--gray-text)]">
+                  Drag cards between stages, sort and filter to stay focused.
+                </p>
+              )}
             </div>
             {boardStats ? (
               <div className="flex flex-wrap gap-3">
@@ -824,6 +839,19 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-red-500">Overdue</p>
                   </div>
                 ) : null}
+                <div className="flex min-w-[120px] flex-col justify-center gap-1 rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">Progress</p>
+                    <p className="text-xs font-semibold text-[var(--navy-dark)]">{boardStats.progressPercent}%</p>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--stroke)]">
+                    <div
+                      className="h-full rounded-full bg-[var(--primary-blue)] transition-all duration-300"
+                      style={{ width: `${boardStats.progressPercent}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-[var(--gray-text)]">{boardStats.doneCount}/{boardStats.total} done</p>
+                </div>
               </div>
             ) : null}
           </div>

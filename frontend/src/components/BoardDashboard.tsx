@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { PlusCircle, Trash2, Pencil, LayoutDashboard, Download, Upload, Copy, KeyRound } from "lucide-react";
+import { PlusCircle, Trash2, Pencil, LayoutDashboard, Download, Upload, Copy, KeyRound, Moon, Sun } from "lucide-react";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import {
   listBoards,
@@ -14,6 +14,7 @@ import {
   changePassword,
   type BoardSummary,
 } from "@/lib/api";
+import { useDarkMode } from "@/lib/use-dark-mode";
 
 type BoardDashboardProps = {
   username: string;
@@ -21,6 +22,7 @@ type BoardDashboardProps = {
 };
 
 export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
+  const { isDark, toggle: toggleDarkMode } = useDarkMode();
   const [boards, setBoards] = useState<BoardSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -183,7 +185,15 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
             All boards
           </button>
         </div>
-        <div className="absolute right-6 top-6 z-10">
+        <div className="absolute right-6 top-6 z-10 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleDarkMode}
+            className="flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-white px-3 py-2 text-xs font-semibold text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)]"
+            aria-label="Toggle dark mode"
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
           <button
             type="button"
             onClick={onLogout}
@@ -257,6 +267,14 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
             >
               <KeyRound className="h-4 w-4" />
               Password
+            </button>
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              className="flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)]"
+              aria-label="Toggle dark mode"
+            >
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
             <button
               type="button"

@@ -12,6 +12,18 @@
   --shadow: 0 18px 40px rgba(3, 33, 71, 0.12);
 }
 
+:root.dark {
+  --accent-yellow: #f0c040;
+  --primary-blue: #5cb8e6;
+  --secondary-purple: #a06cc0;
+  --navy-dark: #e8ecf0;
+  --gray-text: #9ca3af;
+  --surface: #111827;
+  --surface-strong: #1f2937;
+  --stroke: rgba(255, 255, 255, 0.1);
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+}
+
 @theme inline {
   --color-background: var(--surface);
   --color-foreground: var(--navy-dark);
@@ -27,6 +39,27 @@ body {
   color: var(--navy-dark);
   font-family: var(--font-body), "Segoe UI", sans-serif;
   margin: 0;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* Dark mode: override hardcoded Tailwind bg-white on card/panel elements */
+:root.dark .bg-white {
+  background-color: var(--surface-strong) !important;
+}
+:root.dark .bg-white\/80 {
+  background-color: rgba(31, 41, 55, 0.8) !important;
+}
+:root.dark .bg-white\/60 {
+  background-color: rgba(31, 41, 55, 0.6) !important;
+}
+:root.dark .border-red-200 {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+:root.dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+:root.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.1) !important;
 }
 
 .font-display {
