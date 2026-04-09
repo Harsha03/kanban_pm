@@ -227,15 +227,6 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsCreating(true)}
-              className="flex items-center gap-2 rounded-full bg-[var(--secondary-purple)] px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110"
-              data-testid="create-board-button"
-            >
-              <PlusCircle className="h-4 w-4" />
-              New board
-            </button>
             <label
               className="flex cursor-pointer items-center gap-2 rounded-full border border-[var(--stroke)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)]"
             >
@@ -380,21 +371,16 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
               </article>
             ))}
 
-            {boards.length === 0 && !isLoading ? (
-              <div className="col-span-full flex flex-col items-center gap-4 rounded-3xl border border-dashed border-[var(--stroke)] bg-white/60 p-12">
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
-                  No boards yet
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setIsCreating(true)}
-                  className="flex items-center gap-2 rounded-full bg-[var(--secondary-purple)] px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110"
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  Create your first board
-                </button>
-              </div>
-            ) : null}
+            <article
+              className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-[var(--stroke)] bg-white/60 p-6 transition hover:border-[var(--primary-blue)] hover:shadow-lg"
+              onClick={() => setIsCreating(true)}
+              data-testid="create-board-button"
+            >
+              <PlusCircle className="h-10 w-10 text-[var(--gray-text)]" />
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
+                New board
+              </p>
+            </article>
           </div>
         )}
       </main>
