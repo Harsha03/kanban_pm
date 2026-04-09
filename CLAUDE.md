@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Kanban PM is a full-stack project management application with a single-board Kanban interface, FastAPI backend, Next.js frontend, and optional AI chat assistant for board updates.
+Kanban PM is a full-stack project management application with multi-board Kanban interface, user authentication (JWT + bcrypt), FastAPI backend, Next.js frontend, and optional AI chat assistant for board updates.
 
 ## Tech Stack
 
@@ -63,7 +63,8 @@ The application uses a **shared data model** between frontend and backend:
 - **Storage**: SQLite with JSON column validation (`backend/app/db.py`)
   - Schema enforces `json_valid(board_json)` constraint
   - Board data stored as JSON in `boards.board_json` column
-  - One board per user (UNIQUE constraint on `user_id`)
+  - Multiple boards per user (no UNIQUE constraint on `user_id`)
+  - Boards have `name` and `description` metadata columns
 
 **Key invariant**: Frontend and backend must maintain identical schema for columns/cards. When adding fields:
 1. Update TypeScript types in `frontend/src/lib/kanban.ts`
@@ -75,12 +76,31 @@ The application uses a **shared data model** between frontend and backend:
 
 All API routes defined in `backend/app/main.py`:
 
+**Auth:**
+- `POST /api/auth/register` - Create new user account (returns JWT)
+- `POST /api/auth/login` - Login with credentials (returns JWT)
+- `GET /api/auth/me` - Get current user info (requires JWT)
+
+**Multi-board (requires JWT auth):**
+- `GET /api/boards` - List user's boards
+- `POST /api/boards` - Create a new board
+- `GET /api/boards/{board_id}` - Get board with data
+- `PUT /api/boards/{board_id}` - Update board data (full replacement)
+- `PATCH /api/boards/{board_id}` - Update board name/description
+- `DELETE /api/boards/{board_id}` - Delete a board
+- `GET /api/boards/{board_id}/export` - Export board as JSON
+- `POST /api/boards/import` - Import board from JSON export
+- `POST /api/ai/chat/{board_id}` - AI chat scoped to a board (requires JWT)
+
+**Health & AI:**
 - `GET /api/health` - Health check
-- `GET /api/board/{username}` - Fetch user's board
-- `PUT /api/board/{username}` - Update entire board (replace)
-- `POST /api/ai/chat/{username}` - AI chat that can return board updates
-- `GET /api/ai/status` - Check if AI is enabled (OPENROUTER_API_KEY set)
+- `GET /api/ai/status` - Check if AI is enabled
 - `GET /api/ai/test` - Test AI connectivity
+
+**Legacy (no auth, backward compatibility):**
+- `GET /api/board/{username}` - Fetch user's first board
+- `PUT /api/board/{username}` - Update user's first board
+- `POST /api/ai/chat/legacy/{username}` - AI chat by username
 
 ### Frontend API Client
 
@@ -114,10 +134,13 @@ Card movement logic in `frontend/src/lib/kanban.ts`:
 
 ### Authentication
 
-MVP uses hardcoded credentials (`backend/app/db.py`):
-- Username: `user`
-- Password: `dummy-password` (not validated, placeholder only)
-- User created at database initialization in `initialize_database()`
+Real JWT-based authentication (`backend/app/auth.py`):
+- Passwords hashed with bcrypt
+- JWT tokens with 24h expiry (HS256)
+- `require_auth` FastAPI dependency validates `Authorization: Bearer <token>` header
+- Default user `user` / `password` created at database initialization
+- New users can register via `POST /api/auth/register`
+- JWT secret configurable via `PM_JWT_SECRET` env var
 
 ### Database Initialization
 
@@ -145,8 +168,9 @@ Multi-stage Dockerfile:
 Create `.env` in repository root:
 
 ```
-OPENROUTER_API_KEY=your_key_here  # Required for AI features
-PM_DB_PATH=path/to/db.sqlite      # Optional, override default DB location
+OPENROUTER_API_KEY=your_key_here       # Required for AI features
+PM_DB_PATH=path/to/db.sqlite           # Optional, override default DB location
+PM_JWT_SECRET=your-secret-here         # Optional, JWT signing secret (defaults to dev secret)
 ```
 
 ## Testing Patterns
@@ -166,9 +190,11 @@ PM_DB_PATH=path/to/db.sqlite      # Optional, override default DB location
 
 ## Key Design Decisions
 
-1. **No real authentication**: MVP uses single hardcoded user for simplicity
-2. **Full board replacement**: PUT endpoint replaces entire board (no PATCH/incremental updates)
-3. **Client-side drag logic**: `moveCard()` runs in browser, then persists via PUT
-4. **AI as optional feature**: App works without OPENROUTER_API_KEY, AI routes return 503
-5. **JSON storage**: Board stored as JSON blob rather than normalized relational tables for MVP speed
-6. **Backwards compatibility**: `_normalize_board_shape()` ensures old boards get new fields (color, icon, priority)
+1. **JWT authentication**: Real auth with bcrypt password hashing and JWT tokens
+2. **Multi-board**: Each user can have multiple independent kanban boards
+3. **Full board replacement**: PUT endpoint replaces entire board (no PATCH/incremental updates)
+4. **Client-side drag logic**: `moveCard()` runs in browser, then persists via PUT
+5. **AI as optional feature**: App works without OPENROUTER_API_KEY, AI routes return 503
+6. **JSON storage**: Board stored as JSON blob rather than normalized relational tables for MVP speed
+7. **Backwards compatibility**: `_normalize_board_shape()` ensures old boards get new fields (color, icon, priority, dueDate)
+8. **Card due dates**: Cards have optional `dueDate` field (YYYY-MM-DD string or null), displayed with overdue highlighting
