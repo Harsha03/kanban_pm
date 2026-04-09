@@ -1,9 +1,11 @@
 import clsx from "clsx";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   type Card,
   type Column,
+  type Label,
   type PriorityLevel,
 } from "@/lib/kanban";
 import { KanbanCard } from "@/components/KanbanCard";
@@ -17,7 +19,11 @@ type KanbanColumnProps = {
   onOpenCardEdit: (columnId: string, cardId: string) => void;
   onOpenAddCard: (columnId: string) => void;
   onOpenStagePopup: (columnId: string) => void;
+  onMoveColumn?: (columnId: string, direction: "left" | "right") => void;
+  isFirst?: boolean;
+  isLast?: boolean;
   disabled?: boolean;
+  labels?: Label[];
 };
 
 export const KanbanColumn = ({
@@ -28,7 +34,11 @@ export const KanbanColumn = ({
   onOpenCardEdit,
   onOpenAddCard,
   onOpenStagePopup,
+  onMoveColumn,
+  isFirst = false,
+  isLast = false,
   disabled = false,
+  labels = [],
 }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const StageIcon = STAGE_ICON_MAP[column.icon];
@@ -44,7 +54,7 @@ export const KanbanColumn = ({
     >
       <div className="flex items-start justify-between gap-3">
         <div
-          className="w-full cursor-pointer"
+          className="min-w-0 flex-1 cursor-pointer"
           onDoubleClick={() => onOpenStagePopup(column.id)}
           data-testid={`stage-header-${column.id}`}
           title="Double-click to expand"
@@ -56,11 +66,33 @@ export const KanbanColumn = ({
           </div>
           <div className="mt-3 flex items-center gap-2 text-[var(--navy-dark)]">
             <StageIcon className="h-5 w-5" aria-hidden="true" />
-            <p className="border-b border-dashed border-[var(--stroke)] font-display text-lg font-semibold transition-colors duration-150 hover:border-[var(--gray-text)]">
+            <p className="truncate border-b border-dashed border-[var(--stroke)] font-display text-lg font-semibold transition-colors duration-150 hover:border-[var(--gray-text)]">
               {column.title}
             </p>
           </div>
         </div>
+        {onMoveColumn ? (
+          <div className="flex shrink-0 gap-0.5">
+            <button
+              type="button"
+              onClick={() => onMoveColumn(column.id, "left")}
+              disabled={isFirst || disabled}
+              className="rounded-full p-1 text-[var(--gray-text)] transition hover:bg-[var(--surface)] hover:text-[var(--navy-dark)] disabled:opacity-30"
+              aria-label={`Move ${column.title} left`}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onMoveColumn(column.id, "right")}
+              disabled={isLast || disabled}
+              className="rounded-full p-1 text-[var(--gray-text)] transition hover:bg-[var(--surface)] hover:text-[var(--navy-dark)] disabled:opacity-30"
+              aria-label={`Move ${column.title} right`}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
       </div>
       <div className="mt-4 flex flex-1 flex-col gap-3 overflow-y-auto pr-1">
         <SortableContext items={column.cardIds} strategy={verticalListSortingStrategy}>
@@ -74,6 +106,7 @@ export const KanbanColumn = ({
               }
               onOpenEdit={(cardId) => onOpenCardEdit(column.id, cardId)}
               disabled={disabled}
+              labels={labels}
             />
           ))}
         </SortableContext>

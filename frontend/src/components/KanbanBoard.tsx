@@ -11,7 +11,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Inbox, PlusCircle, Settings } from "lucide-react";
+import { Inbox, PlusCircle, Settings, Tag, Search, X } from "lucide-react";
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
 import {
@@ -19,6 +19,7 @@ import {
   getNextStageColor,
   getNextStageIcon,
   initialData,
+  LABEL_COLOR_PALETTE,
   moveCard,
   STAGE_ICON_OPTIONS,
   type BoardData,
@@ -26,7 +27,7 @@ import {
   type PriorityLevel,
   type StageIconName,
 } from "@/lib/kanban";
-import { fetchBoard, persistBoard, sendAIChat, type AIChatHistoryItem } from "@/lib/api";
+import { fetchBoard, fetchBoardById, persistBoard, persistBoardById, sendAIChat, sendAIChatForBoard, type AIChatHistoryItem } from "@/lib/api";
 import { STAGE_ICON_MAP } from "@/lib/stage-icons";
 
 const LOCAL_BOARD_STORAGE_KEY = "pm-local-board";
@@ -34,6 +35,7 @@ const LOCAL_BOARD_STORAGE_KEY = "pm-local-board";
 type KanbanBoardProps = {
   username?: string;
   useApi?: boolean;
+  boardId?: number;
 };
 
 type EditingCardState = {
@@ -42,6 +44,7 @@ type EditingCardState = {
   title: string;
   details: string;
   priority: PriorityLevel;
+  dueDate: string | null;
 };
 
 type AddCardState = {
@@ -49,9 +52,10 @@ type AddCardState = {
   title: string;
   details: string;
   priority: PriorityLevel;
+  dueDate: string | null;
 };
 
-export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardProps) => {
+export const KanbanBoard = ({ username = "user", useApi = true, boardId }: KanbanBoardProps) => {
   const [board, setBoard] = useState<BoardData | null>(useApi ? null : initialData);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(useApi);
@@ -74,6 +78,13 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
   const [addCardState, setAddCardState] = useState<AddCardState | null>(null);
   const [openStagePopupColumnId, setOpenStagePopupColumnId] = useState<string | null>(null);
   const [isStageSettingsOpen, setIsStageSettingsOpen] = useState(false);
+  const [isLabelManagerOpen, setIsLabelManagerOpen] = useState(false);
+  const [newLabelName, setNewLabelName] = useState("");
+  const [newLabelColor, setNewLabelColor] = useState<string>(LABEL_COLOR_PALETTE[0]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterPriority, setFilterPriority] = useState<PriorityLevel | "all">("all");
+  const [filterLabelId, setFilterLabelId] = useState<string | "all">("all");
+  const [newCommentText, setNewCommentText] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -90,9 +101,12 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
       if (!useApi) {
         return nextBoard;
       }
+      if (boardId !== undefined) {
+        return persistBoardById(boardId, nextBoard);
+      }
       return persistBoard(username, nextBoard);
     },
-    [isOfflineFallback, useApi, username]
+    [isOfflineFallback, useApi, username, boardId]
   );
 
   useEffect(() => {
@@ -105,7 +119,13 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
       setIsLoading(true);
       setError(null);
       try {
-        const loaded = await fetchBoard(username);
+        let loaded: BoardData;
+        if (boardId !== undefined) {
+          const detail = await fetchBoardById(boardId);
+          loaded = detail.board;
+        } else {
+          loaded = await fetchBoard(username);
+        }
         if (!cancelled) {
           setBoard(loaded);
           setIsOfflineFallback(false);
@@ -137,10 +157,45 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
     return () => {
       cancelled = true;
     };
-  }, [useApi, username]);
+  }, [useApi, username, boardId]);
 
   const cardsById = useMemo(() => board?.cards ?? {}, [board?.cards]);
   const isBusy = isLoading || isSaving;
+
+  const isCardVisible = useCallback(
+    (card: Card) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (
+          !card.title.toLowerCase().includes(q) &&
+          !card.details.toLowerCase().includes(q)
+        ) {
+          return false;
+        }
+      }
+      if (filterPriority !== "all" && card.priority !== filterPriority) {
+        return false;
+      }
+      if (filterLabelId !== "all" && !(card.labelIds || []).includes(filterLabelId)) {
+        return false;
+      }
+      return true;
+    },
+    [searchQuery, filterPriority, filterLabelId]
+  );
+
+  const filteredColumns = useMemo(() => {
+    if (!board) return [];
+    const hasFilter = searchQuery || filterPriority !== "all" || filterLabelId !== "all";
+    if (!hasFilter) return board.columns;
+    return board.columns.map((col) => ({
+      ...col,
+      cardIds: col.cardIds.filter((cid) => {
+        const card = board.cards[cid];
+        return card ? isCardVisible(card) : false;
+      }),
+    }));
+  }, [board, searchQuery, filterPriority, filterLabelId, isCardVisible]);
 
   const applyBoardUpdate = useCallback(
     async (transform: (current: BoardData) => BoardData) => {
@@ -208,7 +263,8 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
     columnId: string,
     title: string,
     details: string,
-    priority: PriorityLevel
+    priority: PriorityLevel,
+    dueDate: string | null = null
   ) => {
     const id = createId("card");
     void applyBoardUpdate((current) => ({
@@ -220,6 +276,9 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
           title,
           details: details || "No details yet.",
           priority,
+          dueDate,
+          labelIds: [],
+          comments: [],
         },
       },
       columns: current.columns.map((column) =>
@@ -275,6 +334,7 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
       title: card.title,
       details: card.details,
       priority: card.priority,
+      dueDate: card.dueDate ?? null,
     });
   };
 
@@ -287,7 +347,7 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
       return;
     }
     const nextDetails = editingCard.details.trim() || "No details yet.";
-    const { cardId, priority } = editingCard;
+    const { cardId, priority, dueDate } = editingCard;
     setEditingCard(null);
     void applyBoardUpdate((current) => ({
       ...current,
@@ -298,6 +358,7 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
           title: nextTitle,
           details: nextDetails,
           priority,
+          dueDate: dueDate || null,
         },
       },
     }));
@@ -328,6 +389,106 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
         return { ...column, cardIds: nextIds };
       }),
     }));
+  };
+
+  const handleAddLabel = () => {
+    const name = newLabelName.trim();
+    if (!name) return;
+    const id = createId("lbl");
+    void applyBoardUpdate((current) => ({
+      ...current,
+      labels: [...(current.labels || []), { id, name, color: newLabelColor }],
+    }));
+    setNewLabelName("");
+    setNewLabelColor(LABEL_COLOR_PALETTE[((board?.labels?.length ?? 0) + 1) % LABEL_COLOR_PALETTE.length]);
+  };
+
+  const handleDeleteLabel = (labelId: string) => {
+    void applyBoardUpdate((current) => ({
+      ...current,
+      labels: (current.labels || []).filter((l) => l.id !== labelId),
+      cards: Object.fromEntries(
+        Object.entries(current.cards).map(([id, card]) => [
+          id,
+          { ...card, labelIds: (card.labelIds || []).filter((lid) => lid !== labelId) },
+        ])
+      ),
+    }));
+  };
+
+  const handleToggleCardLabel = (cardId: string, labelId: string) => {
+    void applyBoardUpdate((current) => {
+      const card = current.cards[cardId];
+      if (!card) return current;
+      const currentLabelIds = card.labelIds || [];
+      const hasLabel = currentLabelIds.includes(labelId);
+      return {
+        ...current,
+        cards: {
+          ...current.cards,
+          [cardId]: {
+            ...card,
+            labelIds: hasLabel
+              ? currentLabelIds.filter((lid) => lid !== labelId)
+              : [...currentLabelIds, labelId],
+          },
+        },
+      };
+    });
+  };
+
+  const handleAddComment = (cardId: string) => {
+    const text = newCommentText.trim();
+    if (!text) return;
+    const commentId = createId("cmt");
+    void applyBoardUpdate((current) => {
+      const card = current.cards[cardId];
+      if (!card) return current;
+      return {
+        ...current,
+        cards: {
+          ...current.cards,
+          [cardId]: {
+            ...card,
+            comments: [
+              ...(card.comments || []),
+              { id: commentId, text, createdAt: new Date().toISOString() },
+            ],
+          },
+        },
+      };
+    });
+    setNewCommentText("");
+  };
+
+  const handleDeleteComment = (cardId: string, commentId: string) => {
+    void applyBoardUpdate((current) => {
+      const card = current.cards[cardId];
+      if (!card) return current;
+      return {
+        ...current,
+        cards: {
+          ...current.cards,
+          [cardId]: {
+            ...card,
+            comments: (card.comments || []).filter((c) => c.id !== commentId),
+          },
+        },
+      };
+    });
+  };
+
+  const handleMoveColumn = (columnId: string, direction: "left" | "right") => {
+    void applyBoardUpdate((current) => {
+      const index = current.columns.findIndex((c) => c.id === columnId);
+      if (index === -1) return current;
+      const targetIndex = direction === "left" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= current.columns.length) return current;
+      const nextColumns = [...current.columns];
+      nextColumns.splice(index, 1);
+      nextColumns.splice(targetIndex, 0, current.columns[index]);
+      return { ...current, columns: nextColumns };
+    });
   };
 
   const handleAddStage = () => {
@@ -425,6 +586,7 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
       title: "",
       details: "",
       priority: "medium",
+      dueDate: null,
     });
   };
 
@@ -444,7 +606,8 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
       addCardState.columnId,
       nextTitle,
       addCardState.details.trim(),
-      addCardState.priority
+      addCardState.priority,
+      addCardState.dueDate
     );
     setAddCardState(null);
   };
@@ -463,6 +626,20 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [pendingStageRemoval]);
+
+  const boardStats = useMemo(() => {
+    if (!board) return null;
+    const allCards = Object.values(board.cards);
+    const total = allCards.length;
+    const byPriority = { critical: 0, high: 0, medium: 0, low: 0 };
+    let overdue = 0;
+    const today = new Date(new Date().toDateString());
+    for (const card of allCards) {
+      byPriority[card.priority]++;
+      if (card.dueDate && new Date(card.dueDate) < today) overdue++;
+    }
+    return { total, byPriority, overdue, columns: board.columns.length };
+  }, [board]);
 
   const activeCard = activeCardId ? cardsById[activeCardId] : null;
   const stagePopupColumn = openStagePopupColumnId
@@ -521,7 +698,9 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
     setIsChatting(true);
 
     try {
-      const response = await sendAIChat(username, { question, history });
+      const response = boardId !== undefined
+        ? await sendAIChatForBoard(boardId, { question, history })
+        : await sendAIChat(username, { question, history });
       setChatMessages((prev) => [...prev, { role: "assistant", content: response.reply }]);
       if (response.board_update) {
         setBoard(response.board_update);
@@ -567,14 +746,28 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
                 and capture quick notes without getting buried in settings.
               </p>
             </div>
-            <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
-                Focus
-              </p>
-              <p className="mt-2 text-lg font-semibold text-[var(--primary-blue)]">
-                Your flow. Your board. Nothing extra.
-              </p>
-            </div>
+            {boardStats ? (
+              <div className="flex flex-wrap gap-3">
+                <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-3 text-center">
+                  <p className="text-2xl font-semibold text-[var(--navy-dark)]">{boardStats.total}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">Cards</p>
+                </div>
+                <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-3 text-center">
+                  <p className="text-2xl font-semibold text-[var(--navy-dark)]">{boardStats.columns}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">Stages</p>
+                </div>
+                <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-3 text-center">
+                  <p className="text-2xl font-semibold text-red-600">{boardStats.byPriority.critical}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">Critical</p>
+                </div>
+                {boardStats.overdue > 0 ? (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-center">
+                    <p className="text-2xl font-semibold text-red-600">{boardStats.overdue}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-red-500">Overdue</p>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-4">
             {board.columns.map((column) => {
@@ -596,6 +789,61 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
               );
             })}
           </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--gray-text)]" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search cards..."
+                className="w-full rounded-full border border-[var(--stroke)] bg-white py-2 pl-9 pr-8 text-xs font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                data-testid="search-cards"
+              />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--gray-text)] hover:text-[var(--navy-dark)]"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              ) : null}
+            </div>
+            <select
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value as PriorityLevel | "all")}
+              className="rounded-full border border-[var(--stroke)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] outline-none"
+              data-testid="filter-priority"
+            >
+              <option value="all">All priorities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            {(board.labels || []).length > 0 ? (
+              <select
+                value={filterLabelId}
+                onChange={(e) => setFilterLabelId(e.target.value)}
+                className="rounded-full border border-[var(--stroke)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] outline-none"
+                data-testid="filter-label"
+              >
+                <option value="all">All labels</option>
+                {(board.labels || []).map((label) => (
+                  <option key={label.id} value={label.id}>{label.name}</option>
+                ))}
+              </select>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setIsLabelManagerOpen(true)}
+              className="flex items-center gap-1.5 rounded-full border border-[var(--stroke)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)]"
+              data-testid="open-label-manager"
+            >
+              <Tag className="h-3.5 w-3.5" />
+              Labels
+            </button>
+          </div>
           {isSaving ? (
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--primary-blue)]">
               Saving changes...
@@ -616,17 +864,21 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
             onDragEnd={handleDragEnd}
           >
             <section className="grid gap-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-              {board.columns.map((column) => (
+              {filteredColumns.map((column, columnIndex) => (
                 <KanbanColumn
                   key={column.id}
                   column={column}
-                  cards={column.cardIds.map((cardId) => board.cards[cardId])}
+                  cards={column.cardIds.map((cardId) => board.cards[cardId]).filter(Boolean)}
                   onDeleteCard={handleDeleteCard}
                   onUpdatePriority={handleUpdateCardPriority}
                   onOpenCardEdit={handleOpenCardEdit}
                   onOpenAddCard={openAddCardModal}
                   onOpenStagePopup={openStagePopup}
+                  onMoveColumn={handleMoveColumn}
+                  isFirst={columnIndex === 0}
+                  isLast={columnIndex === filteredColumns.length - 1}
                   disabled={isBusy}
+                  labels={board.labels || []}
                 />
               ))}
               <section className="flex h-[430px] flex-col justify-center rounded-3xl border border-dashed border-[var(--stroke)] bg-white/60 p-4">
@@ -845,11 +1097,110 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
               </select>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+                Due date
+              </label>
+              <input
+                type="date"
+                value={editingCard.dueDate ?? ""}
+                onChange={(event) =>
+                  setEditingCard((current) =>
+                    current
+                      ? { ...current, dueDate: event.target.value || null }
+                      : current
+                  )
+                }
+                className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                disabled={isBusy}
+              />
+              {(board.labels || []).length > 0 ? (
+                <>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+                    Labels
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {(board.labels || []).map((label) => {
+                      const isSelected = (board.cards[editingCard.cardId]?.labelIds || []).includes(label.id);
+                      return (
+                        <button
+                          key={label.id}
+                          type="button"
+                          onClick={() => handleToggleCardLabel(editingCard.cardId, label.id)}
+                          className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition"
+                          style={{
+                            borderColor: isSelected ? label.color : "var(--stroke)",
+                            backgroundColor: isSelected ? label.color + "20" : "transparent",
+                            color: isSelected ? label.color : "var(--gray-text)",
+                          }}
+                          disabled={isBusy}
+                        >
+                          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
+                          {label.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : null}
             </div>
-            <div className="mt-6 flex items-center gap-2">
+
+            <div className="mt-4 border-t border-[var(--stroke)] pt-4">
+              <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+                Comments ({(board.cards[editingCard.cardId]?.comments || []).length})
+              </label>
+              <div className="mt-2 max-h-[160px] space-y-2 overflow-y-auto">
+                {(board.cards[editingCard.cardId]?.comments || []).map((comment) => (
+                  <div key={comment.id} className="flex items-start gap-2 rounded-xl border border-[var(--stroke)] bg-[var(--surface)] p-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-[var(--navy-dark)]">{comment.text}</p>
+                      <p className="mt-0.5 text-[10px] text-[var(--gray-text)]">
+                        {new Date(comment.createdAt).toLocaleString(undefined, {
+                          month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteComment(editingCard.cardId, comment.id)}
+                      className="shrink-0 text-[10px] font-semibold text-[var(--gray-text)] hover:text-red-600"
+                      disabled={isBusy}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={newCommentText}
+                  onChange={(e) => setNewCommentText(e.target.value)}
+                  placeholder="Add a comment..."
+                  className="flex-1 rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAddComment(editingCard.cardId);
+                    }
+                  }}
+                  disabled={isBusy}
+                  data-testid="new-comment-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleAddComment(editingCard.cardId)}
+                  className="rounded-full bg-[var(--secondary-purple)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
+                  disabled={isBusy || !newCommentText.trim()}
+                  data-testid="add-comment-button"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setEditingCard(null)}
+                onClick={() => { setEditingCard(null); setNewCommentText(""); }}
                 className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
                 disabled={isBusy}
               >
@@ -937,6 +1288,23 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
               <option value="medium">Medium</option>
               <option value="low">Low</option>
             </select>
+
+            <label className="mt-4 block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+              Due date (optional)
+            </label>
+            <input
+              type="date"
+              value={addCardState.dueDate ?? ""}
+              onChange={(event) =>
+                setAddCardState((current) =>
+                  current
+                    ? { ...current, dueDate: event.target.value || null }
+                    : current
+                )
+              }
+              className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+              disabled={isBusy}
+            />
 
             <div className="mt-6 flex items-center gap-2">
               <button
@@ -1170,6 +1538,96 @@ export const KanbanBoard = ({ username = "user", useApi = true }: KanbanBoardPro
                 disabled={isBusy}
               >
                 Remove stage
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isLabelManagerOpen ? (
+        <div
+          className="modal-overlay-enter fixed inset-0 z-50 flex items-center justify-center bg-[rgba(3,33,71,0.35)] px-4 backdrop-blur-[2px]"
+          onClick={() => setIsLabelManagerOpen(false)}
+          data-testid="label-manager-modal"
+        >
+          <div
+            className="modal-dialog-enter w-full max-w-lg rounded-3xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+              Board labels
+            </p>
+            <h3 className="mt-2 font-display text-xl font-semibold text-[var(--navy-dark)]">
+              Manage Labels
+            </h3>
+
+            <div className="mt-4 space-y-2">
+              {(board.labels || []).map((label) => (
+                <div key={label.id} className="flex items-center gap-2 rounded-xl border border-[var(--stroke)] p-2">
+                  <span
+                    className="h-4 w-4 shrink-0 rounded-full"
+                    style={{ backgroundColor: label.color }}
+                  />
+                  <span className="flex-1 text-sm font-medium text-[var(--navy-dark)]">
+                    {label.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteLabel(label.id)}
+                    className="text-xs font-semibold text-[var(--gray-text)] hover:text-red-600"
+                    disabled={isBusy}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              {(board.labels || []).length === 0 ? (
+                <p className="rounded-xl border border-dashed border-[var(--stroke)] p-4 text-center text-xs text-[var(--gray-text)]">
+                  No labels yet. Add one below.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
+              <input
+                value={newLabelName}
+                onChange={(e) => setNewLabelName(e.target.value)}
+                placeholder="Label name"
+                className="flex-1 rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                data-testid="new-label-name"
+              />
+              <div className="flex gap-1">
+                {LABEL_COLOR_PALETTE.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setNewLabelColor(color)}
+                    className="h-6 w-6 rounded-full border-2 transition"
+                    style={{
+                      backgroundColor: color,
+                      borderColor: newLabelColor === color ? "var(--navy-dark)" : "transparent",
+                    }}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handleAddLabel}
+                className="rounded-full bg-[var(--secondary-purple)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
+                disabled={isBusy || !newLabelName.trim()}
+                data-testid="add-label-button"
+              >
+                Add
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setIsLabelManagerOpen(false)}
+                className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+              >
+                Close
               </button>
             </div>
           </div>

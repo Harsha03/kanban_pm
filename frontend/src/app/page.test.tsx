@@ -1,38 +1,76 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Home from "@/app/page";
-import { AUTH_STORAGE_KEY } from "@/lib/auth";
+import { AUTH_TOKEN_KEY } from "@/lib/auth";
 
 describe("Home auth flow", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    vi.restoreAllMocks();
   });
 
   it("blocks access until login", () => {
     render(<Home />);
     expect(screen.getByRole("heading", { name: /sign in to continue/i })).toBeVisible();
-    expect(screen.queryByRole("heading", { name: "Kanban Studio" })).not.toBeInTheDocument();
   });
 
   it("shows error on invalid credentials", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({ detail: "Invalid username or password" }),
+      } as Response)
+    );
+
     render(<Home />);
     await userEvent.type(screen.getByLabelText(/username/i), "user");
     await userEvent.type(screen.getByLabelText(/password/i), "wrong");
     await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
-    expect(screen.getByRole("alert")).toHaveTextContent(/invalid credentials/i);
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(/invalid username or password/i);
+    });
   });
 
-  it("logs in and logs out", async () => {
+  it("logs in successfully and stores token", async () => {
+    const loginResponse = {
+      token: "test-jwt-token",
+      user: { id: 1, username: "user" },
+    };
+    const boardsResponse = [
+      { id: 1, name: "My Board", description: "", created_at: "2024-01-01", updated_at: "2024-01-01" },
+    ];
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => loginResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => boardsResponse,
+        } as Response)
+    );
+
     render(<Home />);
     await userEvent.type(screen.getByLabelText(/username/i), "user");
     await userEvent.type(screen.getByLabelText(/password/i), "password");
     await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
-    expect(screen.getByRole("heading", { name: "Kanban Studio" })).toBeVisible();
-    expect(window.localStorage.getItem(AUTH_STORAGE_KEY)).toBe("true");
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Your Boards" })).toBeVisible();
+    });
+    expect(window.localStorage.getItem(AUTH_TOKEN_KEY)).toBe("test-jwt-token");
+  });
 
-    await userEvent.click(screen.getByRole("button", { name: /log out/i }));
-    expect(screen.getByRole("heading", { name: /sign in to continue/i })).toBeVisible();
-    expect(window.localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull();
+  it("shows registration form when toggled", async () => {
+    render(<Home />);
+    await userEvent.click(screen.getByText(/need an account/i));
+    expect(screen.getByRole("heading", { name: /create an account/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /create account/i })).toBeVisible();
   });
 });

@@ -36,7 +36,7 @@ def test_ai_chat_returns_503_when_key_missing(monkeypatch, tmp_path: Path) -> No
 
     with TestClient(app) as client:
         response = client.post(
-            "/api/ai/chat/user",
+            "/api/ai/chat/legacy/user",
             json={"question": "hello", "history": []},
         )
         assert response.status_code == 503
@@ -57,7 +57,7 @@ def test_ai_chat_reply_only(monkeypatch, tmp_path: Path) -> None:
 
     with TestClient(app) as client:
         response = client.post(
-            "/api/ai/chat/user",
+            "/api/ai/chat/legacy/user",
             json={
                 "question": "Summarize the board",
                 "history": [{"role": "user", "content": "Hi"}],
@@ -125,7 +125,7 @@ def test_ai_chat_applies_board_update(monkeypatch, tmp_path: Path) -> None:
 
     with TestClient(app) as client:
         response = client.post(
-            "/api/ai/chat/user",
+            "/api/ai/chat/legacy/user",
             json={"question": "Rename backlog", "history": []},
         )
         assert response.status_code == 200
@@ -146,7 +146,7 @@ def test_ai_chat_falls_back_to_plain_reply_when_structured_invalid(
 
     with TestClient(app) as client:
         response = client.post(
-            "/api/ai/chat/user",
+            "/api/ai/chat/legacy/user",
             json={"question": "Hi", "history": []},
         )
         assert response.status_code == 200
@@ -166,7 +166,7 @@ def test_ai_chat_falls_back_to_reply_when_board_update_invalid(
 
     with TestClient(app) as client:
         response = client.post(
-            "/api/ai/chat/user",
+            "/api/ai/chat/legacy/user",
             json={"question": "Hello", "history": []},
         )
         assert response.status_code == 200

@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -16,8 +16,34 @@ from backend.app.ai import (
     run_connectivity_test,
     run_structured_board_chat,
 )
-from backend.app.db import get_board, initialize_database, update_board
-from backend.app.models import AIChatAPIResponse, AIChatRequest, BoardData
+from backend.app.auth import create_token, hash_password, require_auth, verify_password
+from backend.app.db import (
+    create_board,
+    create_user,
+    delete_board,
+    get_board,
+    get_board_by_id,
+    get_user_by_id,
+    get_user_by_username,
+    initialize_database,
+    list_boards,
+    update_board,
+    update_board_data,
+    update_board_meta,
+)
+from backend.app.models import (
+    AIChatAPIResponse,
+    AIChatRequest,
+    AuthResponse,
+    BoardData,
+    BoardSummary,
+    CreateBoardRequest,
+    ImportBoardRequest,
+    LoginRequest,
+    RegisterRequest,
+    UpdateBoardMetaRequest,
+    UserResponse,
+)
 
 # Configure structured logging
 logging.basicConfig(
@@ -39,8 +65,8 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Kanban PM API",
-    description="Single-board project management with AI assistant",
-    version="0.1.0",
+    description="Multi-board project management with user auth and AI assistant",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -66,51 +92,141 @@ static_dir = app_dir / "static"
 frontend_dist_dir = app_dir / "frontend_dist"
 
 
+# --- Health ---
+
+
 @app.get("/api/health", tags=["Health"])
 def health() -> dict[str, str]:
-    """
-    Health check endpoint.
-
-    Returns:
-        dict: Status indicator {"status": "ok"}
-    """
     return {"status": "ok"}
 
 
 @app.get("/api/hello", tags=["Health"])
 def hello() -> dict[str, str]:
-    """
-    Simple hello endpoint for testing.
-
-    Returns:
-        dict: Hello message from the API
-    """
     return {"message": "hello from fastapi"}
+
+
+# --- Auth ---
+
+
+@app.post("/api/auth/register", response_model=AuthResponse, tags=["Auth"])
+def register(payload: RegisterRequest) -> AuthResponse:
+    hashed = hash_password(payload.password)
+    try:
+        user = create_user(payload.username, hashed)
+    except ValueError:
+        raise HTTPException(status_code=409, detail="Username already taken")
+    token = create_token(user["id"], user["username"])
+    return AuthResponse(token=token, user={"id": user["id"], "username": user["username"]})
+
+
+@app.post("/api/auth/login", response_model=AuthResponse, tags=["Auth"])
+def login(payload: LoginRequest) -> AuthResponse:
+    user = get_user_by_username(payload.username)
+    if user is None or not verify_password(payload.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    token = create_token(user["id"], user["username"])
+    return AuthResponse(
+        token=token, user={"id": user["id"], "username": user["username"]}
+    )
+
+
+@app.get("/api/auth/me", response_model=UserResponse, tags=["Auth"])
+def get_me(auth: dict = Depends(require_auth)) -> UserResponse:
+    user = get_user_by_id(auth["sub"])
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return UserResponse(id=user["id"], username=user["username"])
+
+
+# --- Multi-board endpoints ---
+
+
+@app.get("/api/boards", response_model=list[BoardSummary], tags=["Boards"])
+def list_user_boards(auth: dict = Depends(require_auth)) -> list[BoardSummary]:
+    boards = list_boards(auth["sub"])
+    return [BoardSummary(**b) for b in boards]
+
+
+@app.post("/api/boards", tags=["Boards"])
+def create_user_board(
+    payload: CreateBoardRequest, auth: dict = Depends(require_auth)
+) -> dict:
+    result = create_board(auth["sub"], payload.name, payload.description, payload.template)
+    return result
+
+
+@app.get("/api/boards/{board_id}", tags=["Boards"])
+def get_user_board(board_id: int, auth: dict = Depends(require_auth)) -> dict:
+    result = get_board_by_id(board_id, auth["sub"])
+    if result is None:
+        raise HTTPException(status_code=404, detail="Board not found")
+    return result
+
+
+@app.put("/api/boards/{board_id}", response_model=BoardData, tags=["Boards"])
+def update_user_board(
+    board_id: int, payload: BoardData, auth: dict = Depends(require_auth)
+) -> BoardData:
+    result = update_board_data(board_id, auth["sub"], payload.model_dump())
+    if result is None:
+        raise HTTPException(status_code=404, detail="Board not found")
+    return BoardData.model_validate(result)
+
+
+@app.patch("/api/boards/{board_id}", tags=["Boards"])
+def patch_user_board_meta(
+    board_id: int, payload: UpdateBoardMetaRequest, auth: dict = Depends(require_auth)
+) -> dict:
+    result = update_board_meta(board_id, auth["sub"], payload.name, payload.description)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Board not found")
+    return result
+
+
+@app.delete("/api/boards/{board_id}", tags=["Boards"])
+def delete_user_board(board_id: int, auth: dict = Depends(require_auth)) -> dict:
+    deleted = delete_board(board_id, auth["sub"])
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Board not found")
+    return {"deleted": True}
+
+
+@app.get("/api/boards/{board_id}/export", tags=["Boards"])
+def export_board(board_id: int, auth: dict = Depends(require_auth)) -> dict:
+    """Export a board as a JSON object for download."""
+    result = get_board_by_id(board_id, auth["sub"])
+    if result is None:
+        raise HTTPException(status_code=404, detail="Board not found")
+    return {
+        "name": result["name"],
+        "description": result["description"],
+        "board": result["board"],
+    }
+
+
+@app.post("/api/boards/import", tags=["Boards"])
+def import_board(payload: ImportBoardRequest, auth: dict = Depends(require_auth)) -> dict:
+    """Import a board from a JSON export."""
+    from backend.app.db import _create_board_for_user, get_connection
+
+    with get_connection() as conn:
+        result = _create_board_for_user(
+            conn, auth["sub"], payload.name, payload.description, payload.board.model_dump()
+        )
+        conn.commit()
+        return result
+
+
+# --- AI ---
 
 
 @app.get("/api/ai/status", tags=["AI"])
 def ai_status() -> dict[str, bool]:
-    """
-    Check if AI features are enabled.
-
-    Returns:
-        dict: {"enabled": bool} - True if OPENROUTER_API_KEY is set
-    """
     return {"enabled": is_ai_enabled()}
 
 
 @app.get("/api/ai/test", tags=["AI"])
 def ai_test() -> dict[str, str]:
-    """
-    Test AI connectivity with a simple prompt.
-
-    Returns:
-        dict: {"model": str, "answer": str} - Model name and response to "2+2"
-
-    Raises:
-        HTTPException(503): AI is disabled (no API key)
-        HTTPException(502): OpenRouter connection/response error
-    """
     try:
         return run_connectivity_test()
     except AIUnavailableError as exc:
@@ -122,20 +238,64 @@ def ai_test() -> dict[str, str]:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-@app.get("/api/board/{username}", response_model=BoardData, tags=["Board"])
+@app.post(
+    "/api/ai/chat/{board_id}",
+    response_model=AIChatAPIResponse,
+    tags=["AI"],
+)
+@limiter.limit("10/minute")
+def ai_chat_board(
+    request: Request,
+    board_id: int,
+    payload: AIChatRequest,
+    auth: dict = Depends(require_auth),
+) -> AIChatAPIResponse:
+    """AI chat scoped to a specific board (authenticated)."""
+    if not is_ai_enabled():
+        raise HTTPException(
+            status_code=503,
+            detail="AI is disabled because OPENROUTER_API_KEY is not set.",
+        )
+
+    board_record = get_board_by_id(board_id, auth["sub"])
+    if board_record is None:
+        raise HTTPException(status_code=404, detail="Board not found")
+
+    current_board = BoardData.model_validate(board_record["board"])
+
+    try:
+        structured = run_structured_board_chat(
+            board=current_board,
+            history=payload.history,
+            question=payload.question,
+        )
+    except AIUnavailableError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="AI is disabled because OPENROUTER_API_KEY is not set.",
+        ) from exc
+    except AIProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    if structured.board_update is not None:
+        persisted = update_board_data(
+            board_id, auth["sub"], structured.board_update.model_dump()
+        )
+        if persisted is None:
+            raise HTTPException(status_code=404, detail="Board not found")
+        return AIChatAPIResponse(
+            reply=structured.reply,
+            board_update=BoardData.model_validate(persisted),
+        )
+
+    return AIChatAPIResponse(reply=structured.reply, board_update=None)
+
+
+# --- Legacy endpoints (keep backward compatibility) ---
+
+
+@app.get("/api/board/{username}", response_model=BoardData, tags=["Board (Legacy)"])
 def read_board(username: str) -> BoardData:
-    """
-    Fetch board data for a user.
-
-    Args:
-        username: The username to fetch board for
-
-    Returns:
-        BoardData: Complete board state including columns and cards
-
-    Raises:
-        HTTPException(404): User not found
-    """
     try:
         board = get_board(username)
     except LookupError as exc:
@@ -143,22 +303,8 @@ def read_board(username: str) -> BoardData:
     return BoardData.model_validate(board)
 
 
-@app.put("/api/board/{username}", response_model=BoardData, tags=["Board"])
+@app.put("/api/board/{username}", response_model=BoardData, tags=["Board (Legacy)"])
 def write_board(username: str, payload: BoardData) -> BoardData:
-    """
-    Update board data for a user (full replacement).
-
-    Args:
-        username: The username to update board for
-        payload: Complete board data (replaces existing board)
-
-    Returns:
-        BoardData: The persisted board state
-
-    Raises:
-        HTTPException(404): User not found
-        HTTPException(422): Invalid board data (validation errors)
-    """
     try:
         board = update_board(username, payload.model_dump())
     except LookupError as exc:
@@ -166,27 +312,16 @@ def write_board(username: str, payload: BoardData) -> BoardData:
     return BoardData.model_validate(board)
 
 
-@app.post("/api/ai/chat/{username}", response_model=AIChatAPIResponse, tags=["AI"])
+@app.post(
+    "/api/ai/chat/legacy/{username}",
+    response_model=AIChatAPIResponse,
+    tags=["AI"],
+)
 @limiter.limit("10/minute")
-def ai_chat(request: Request, username: str, payload: AIChatRequest) -> AIChatAPIResponse:
-    """
-    Send a chat message to the AI assistant.
-
-    The AI can respond with text and optionally update the board state.
-    Includes current board and conversation history in the AI prompt.
-
-    Args:
-        username: The username for board context
-        payload: Chat request with question and conversation history
-
-    Returns:
-        AIChatAPIResponse: AI reply and optional board update
-
-    Raises:
-        HTTPException(503): AI is disabled (no API key)
-        HTTPException(502): OpenRouter connection/response error
-        HTTPException(404): User not found
-    """
+def ai_chat(
+    request: Request, username: str, payload: AIChatRequest
+) -> AIChatAPIResponse:
+    """Legacy AI chat endpoint using username."""
     if not is_ai_enabled():
         raise HTTPException(
             status_code=503,
@@ -224,6 +359,8 @@ def ai_chat(request: Request, username: str, payload: AIChatRequest) -> AIChatAP
 
     return AIChatAPIResponse(reply=structured.reply, board_update=None)
 
+
+# --- Static files ---
 
 if frontend_dist_dir.exists():
     app.mount("/", StaticFiles(directory=frontend_dist_dir, html=True), name="frontend")

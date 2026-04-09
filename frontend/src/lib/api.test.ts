@@ -1,4 +1,4 @@
-import { fetchBoard, persistBoard, sendAIChat } from "@/lib/api";
+import { fetchBoard, persistBoard, sendAIChat, exportBoard, importBoard } from "@/lib/api";
 import { initialData } from "@/lib/kanban";
 
 describe("api client", () => {
@@ -52,7 +52,7 @@ describe("api client", () => {
       question: "Summarize",
       history: [{ role: "user", content: "Hi" }],
     });
-    expect(fetchMock).toHaveBeenCalledWith("/api/ai/chat/user", {
+    expect(fetchMock).toHaveBeenCalledWith("/api/ai/chat/legacy/user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -62,5 +62,34 @@ describe("api client", () => {
     });
     expect(response.reply).toBe("Done.");
     expect(response.board_update).toBeNull();
+  });
+
+  it("exports a board", async () => {
+    const exportData = { name: "Test", description: "Desc", board: initialData };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => exportData,
+    } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await exportBoard(1);
+    expect(result.name).toBe("Test");
+    expect(result.board.columns).toHaveLength(5);
+  });
+
+  it("imports a board", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 2, name: "Imported", description: "" }),
+    } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await importBoard("Imported", "", initialData);
+    expect(result.id).toBe(2);
+    expect(result.name).toBe("Imported");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/boards/import",
+      expect.objectContaining({ method: "POST" })
+    );
   });
 });

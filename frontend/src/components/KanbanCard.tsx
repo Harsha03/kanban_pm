@@ -1,7 +1,8 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import clsx from "clsx";
-import type { Card, PriorityLevel } from "@/lib/kanban";
+import { Calendar, MessageSquare } from "lucide-react";
+import type { Card, Label, PriorityLevel } from "@/lib/kanban";
 
 const PRIORITY_STYLES: Record<PriorityLevel, { label: string; colorClass: string }> = {
   critical: { label: "Critical", colorClass: "border-l-red-600" },
@@ -16,6 +17,7 @@ type KanbanCardProps = {
   onPriorityChange: (cardId: string, priority: PriorityLevel) => void;
   onOpenEdit: (cardId: string) => void;
   disabled?: boolean;
+  labels?: Label[];
 };
 
 export const KanbanCard = ({
@@ -24,7 +26,9 @@ export const KanbanCard = ({
   onPriorityChange,
   onOpenEdit,
   disabled = false,
+  labels = [],
 }: KanbanCardProps) => {
+  const cardLabels = labels.filter((l) => (card.labelIds || []).includes(l.id));
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: card.id });
 
@@ -67,6 +71,43 @@ export const KanbanCard = ({
           <p className="mt-2 text-sm leading-6 text-[var(--gray-text)]">
             {card.details}
           </p>
+          {cardLabels.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {cardLabels.map((label) => (
+                <span
+                  key={label.id}
+                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                  style={{ backgroundColor: label.color }}
+                >
+                  {label.name}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {(card.dueDate || (card.comments || []).length > 0) ? (
+            <div className="mt-1 flex items-center gap-3">
+              {card.dueDate ? (
+                <span className={clsx(
+                  "flex items-center gap-1 text-xs font-semibold",
+                  new Date(card.dueDate) < new Date(new Date().toDateString())
+                    ? "text-red-600"
+                    : "text-[var(--gray-text)]"
+                )}>
+                  <Calendar className="h-3 w-3" />
+                  {new Date(card.dueDate + "T00:00:00").toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+              ) : null}
+              {(card.comments || []).length > 0 ? (
+                <span className="flex items-center gap-1 text-xs font-semibold text-[var(--gray-text)]">
+                  <MessageSquare className="h-3 w-3" />
+                  {(card.comments || []).length}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2">
           <select
