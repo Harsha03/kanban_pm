@@ -19,10 +19,34 @@ const boardFixture = {
   },
 };
 
-const mockBoardApi = async (page: Page) => {
-  await page.route("**/api/board/user", async (route) => {
+const login = async (page: Page) => {
+  await page.goto("/");
+  await page.getByLabel("Username").fill("user");
+  await page.getByLabel("Password").fill("password");
+  await page.getByRole("button", { name: /sign in/i }).click();
+  await expect(page.getByRole("heading", { name: "Your Boards" })).toBeVisible();
+};
+
+const loginAndOpenBoard = async (page: Page) => {
+  await login(page);
+  await page.locator('[data-testid^="board-card-"]').first().click();
+  await expect(page.locator('[data-testid^="column-"]').first()).toBeVisible();
+};
+
+const mockBoardApis = async (page: Page) => {
+  // Mock the board detail endpoint (used when opening a board by ID)
+  await page.route("**/api/boards/*", async (route) => {
+    const url = route.request().url();
+    // Skip list endpoint and sub-routes like /export, /duplicate
+    if (url.endsWith("/boards") || url.includes("/export") || url.includes("/duplicate") || url.includes("/import")) {
+      await route.continue();
+      return;
+    }
     if (route.request().method() === "GET") {
-      await route.fulfill({ status: 200, json: boardFixture });
+      await route.fulfill({
+        status: 200,
+        json: { id: 1, name: "Test Board", description: "", board: boardFixture },
+      });
       return;
     }
     if (route.request().method() === "PUT") {
@@ -34,17 +58,10 @@ const mockBoardApi = async (page: Page) => {
   });
 };
 
-const login = async (page: Page) => {
-  await page.goto("/");
-  await page.getByLabel("Username").fill("user");
-  await page.getByLabel("Password").fill("password");
-  await page.getByRole("button", { name: /sign in/i }).click();
-};
-
 test("blocks kanban access before login", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /sign in to continue/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Kanban Studio" })).not.toBeVisible();
+  await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your Boards" })).not.toBeVisible();
 });
 
 test("shows an error for invalid credentials", async ({ page }) => {
@@ -56,15 +73,14 @@ test("shows an error for invalid credentials", async ({ page }) => {
 });
 
 test("logs in, shows board, and logs out", async ({ page }) => {
-  await login(page);
-  await expect(page.getByRole("heading", { name: "Kanban Studio" })).toBeVisible();
+  await loginAndOpenBoard(page);
   await expect(page.locator('[data-testid^="column-"]')).toHaveCount(5);
   await page.getByRole("button", { name: /log out/i }).click();
-  await expect(page.getByRole("heading", { name: /sign in to continue/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
 });
 
 test("adds a card to a column", async ({ page }) => {
-  await login(page);
+  await loginAndOpenBoard(page);
   const firstColumn = page.locator('[data-testid^="column-"]').first();
   await firstColumn.getByRole("button", { name: /add a card/i }).click();
   const addModal = page.getByTestId("add-card-modal");
@@ -75,7 +91,7 @@ test("adds a card to a column", async ({ page }) => {
 });
 
 test("persists board updates across reload", async ({ page }) => {
-  await login(page);
+  await loginAndOpenBoard(page);
   const firstColumn = page.locator('[data-testid^="column-"]').first();
   await firstColumn.getByRole("button", { name: /add a card/i }).click();
   const addModal = page.getByTestId("add-card-modal");
@@ -89,7 +105,7 @@ test("persists board updates across reload", async ({ page }) => {
 });
 
 test("moves a card between columns", async ({ page }) => {
-  await login(page);
+  await loginAndOpenBoard(page);
   const card = page.getByTestId("card-card-1");
   const targetColumn = page.getByTestId("column-col-review");
   const cardBox = await card.boundingBox();
@@ -113,15 +129,16 @@ test("moves a card between columns", async ({ page }) => {
 });
 
 test("shows ai chat reply", async ({ page }) => {
-  await mockBoardApi(page);
-  await page.route("**/api/ai/chat/user", async (route) => {
+  await mockBoardApis(page);
+  // Mock AI chat for board-specific endpoint (matches /api/ai/chat/<boardId>)
+  await page.route("**/api/ai/chat/*", async (route) => {
     await route.fulfill({
       status: 200,
       json: { reply: "AI says hello", board_update: null },
     });
   });
 
-  await login(page);
+  await loginAndOpenBoard(page);
   await page.getByTestId("open-ai-chat").click();
   await page.getByTestId("ai-chat-input").fill("Say hello");
   await page.getByTestId("ai-chat-send").click();
@@ -129,8 +146,9 @@ test("shows ai chat reply", async ({ page }) => {
 });
 
 test("applies ai board updates to the UI", async ({ page }) => {
-  await mockBoardApi(page);
-  await page.route("**/api/ai/chat/user", async (route) => {
+  await mockBoardApis(page);
+  // Mock AI chat for board-specific endpoint
+  await page.route("**/api/ai/chat/*", async (route) => {
     const updatedBoard = {
       ...boardFixture,
       columns: [{ ...boardFixture.columns[0], title: "Backlog AI Updated" }, ...boardFixture.columns.slice(1)],
@@ -141,7 +159,7 @@ test("applies ai board updates to the UI", async ({ page }) => {
     });
   });
 
-  await login(page);
+  await loginAndOpenBoard(page);
   await page.getByTestId("open-ai-chat").click();
   await page.getByTestId("ai-chat-input").fill("Rename backlog");
   await page.getByTestId("ai-chat-send").click();
