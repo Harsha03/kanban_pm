@@ -190,6 +190,16 @@ PM_JWT_SECRET=your-secret-here         # Optional, JWT signing secret (defaults 
 - **API tests**: `test_board_api.py` uses FastAPI TestClient
 - **AI tests**: `test_ai.py` mocks OpenRouter responses
 
+## Design System
+
+"Warm Atelier" aesthetic with earthy color palette defined via CSS variables in `frontend/src/app/globals.css`:
+- **Typography**: Instrument Serif (display/headings, italic), DM Sans (body), loaded via `next/font/google` in `layout.tsx`
+- **Colors (light)**: Deep espresso text (`#2c1810`), warm linen surfaces (`#f6f1eb`), amber/copper accents (`#c8956c`, `#d4845a`), terracotta CTA (`#6b3a24`)
+- **Colors (dark)**: Warm charcoal backgrounds (`#1a1210`), muted copper accents
+- **CSS variables**: `--accent-yellow`, `--primary-blue`, `--secondary-purple`, `--navy-dark`, `--gray-text`, `--surface`, `--surface-strong`, `--stroke`, `--shadow`, `--accent-warm`, `--accent-deep`
+- **Effects**: Subtle SVG noise grain overlay on body, warm-toned scrollbars, warm selection color
+- Use `.font-display` class for serif headings; variable names kept for backwards compatibility despite palette shift
+
 ## Key Design Decisions
 
 1. **JWT authentication**: Real auth with bcrypt password hashing and JWT tokens

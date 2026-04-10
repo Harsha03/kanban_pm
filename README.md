@@ -30,7 +30,8 @@ A full-stack project management application with multi-board Kanban interface, u
 - **Per-user isolation** — each user sees only their own boards
 
 ### UI / UX
-- **Dark mode** — toggle with persistence in localStorage
+- **"Warm Atelier" design** — rich earthy palette with amber/copper accents, Instrument Serif display type, DM Sans body text, subtle grain texture overlay
+- **Dark mode** — toggle with persistence in localStorage, warm charcoal tones
 - **Keyboard shortcuts** — `/` search, `n` new card, `?` AI chat, `Esc` close modals
 - **Board statistics** — card count, stage count, critical items, overdue count
 - **AI chat assistant** — optional sidebar that can read and update the board
@@ -39,6 +40,7 @@ A full-stack project management application with multi-board Kanban interface, u
 
 - **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS 4, dnd-kit
 - **Backend**: FastAPI, SQLite, bcrypt, PyJWT, python-dotenv, uv
+- **Design**: Instrument Serif + DM Sans typography, warm color system via CSS variables
 - **Testing**: Vitest (44 tests), pytest (71 tests), Playwright (e2e)
 - **Runtime**: Docker with multi-stage build
 

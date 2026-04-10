@@ -47,8 +47,8 @@ export const KanbanColumn = ({
     <section
       ref={setNodeRef}
       className={clsx(
-        "flex h-[430px] flex-col rounded-3xl border border-[var(--stroke)] bg-[var(--surface-strong)] p-4 shadow-[var(--shadow)] transition",
-        isOver && "ring-2 ring-[var(--accent-yellow)]"
+        "flex h-[430px] flex-col rounded-2xl border border-[var(--stroke)] bg-[var(--surface-strong)] p-4 transition-all duration-200",
+        isOver && "ring-2 ring-[var(--accent-warm)] shadow-[0_0_0_1px_var(--accent-warm)]"
       )}
       data-testid={`column-${column.id}`}
     >
@@ -60,13 +60,13 @@ export const KanbanColumn = ({
           title="Double-click to expand"
         >
           <div className="flex items-center">
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
-              {cards.length} cards
+            <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
+              {cards.length} {cards.length === 1 ? "card" : "cards"}
             </span>
           </div>
-          <div className="mt-3 flex items-center gap-2 text-[var(--navy-dark)]">
-            <StageIcon className="h-5 w-5" aria-hidden="true" />
-            <p className="truncate border-b border-dashed border-[var(--stroke)] font-display text-lg font-semibold transition-colors duration-150 hover:border-[var(--gray-text)]">
+          <div className="mt-2.5 flex items-center gap-2 text-[var(--navy-dark)]">
+            <StageIcon className="h-4.5 w-4.5 text-[var(--accent-warm)]" aria-hidden="true" />
+            <p className="truncate font-display text-lg transition-colors duration-150 hover:text-[var(--accent-deep)]">
               {column.title}
             </p>
           </div>
@@ -77,7 +77,7 @@ export const KanbanColumn = ({
               type="button"
               onClick={() => onMoveColumn(column.id, "left")}
               disabled={isFirst || disabled}
-              className="rounded-full p-1 text-[var(--gray-text)] transition hover:bg-[var(--surface)] hover:text-[var(--navy-dark)] disabled:opacity-30"
+              className="rounded-lg p-1 text-[var(--gray-text)] transition hover:bg-[var(--surface)] hover:text-[var(--navy-dark)] disabled:opacity-30"
               aria-label={`Move ${column.title} left`}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -86,7 +86,7 @@ export const KanbanColumn = ({
               type="button"
               onClick={() => onMoveColumn(column.id, "right")}
               disabled={isLast || disabled}
-              className="rounded-full p-1 text-[var(--gray-text)] transition hover:bg-[var(--surface)] hover:text-[var(--navy-dark)] disabled:opacity-30"
+              className="rounded-lg p-1 text-[var(--gray-text)] transition hover:bg-[var(--surface)] hover:text-[var(--navy-dark)] disabled:opacity-30"
               aria-label={`Move ${column.title} right`}
             >
               <ChevronRight className="h-4 w-4" />
@@ -94,7 +94,8 @@ export const KanbanColumn = ({
           </div>
         ) : null}
       </div>
-      <div className="mt-4 flex flex-1 flex-col gap-3 overflow-y-auto pr-1">
+      <div className="mt-3 h-px bg-[var(--stroke)]" />
+      <div className="mt-3 flex flex-1 flex-col gap-2.5 overflow-y-auto pr-1">
         <SortableContext items={column.cardIds} strategy={verticalListSortingStrategy}>
           {cards.map((card) => (
             <KanbanCard
@@ -111,16 +112,16 @@ export const KanbanColumn = ({
           ))}
         </SortableContext>
         {cards.length === 0 && (
-          <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-[var(--stroke)] px-3 py-6 text-center text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
+          <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-[var(--stroke)] px-3 py-6 text-center text-[11px] font-medium uppercase tracking-[0.15em] text-[var(--gray-text)]">
             Drop a card here
           </div>
         )}
       </div>
-      <div className="mt-4">
+      <div className="mt-3">
         <button
           type="button"
           onClick={() => onOpenAddCard(column.id)}
-          className="w-full rounded-full border border-dashed border-[var(--stroke)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--primary-blue)] transition hover:border-[var(--primary-blue)] disabled:opacity-60"
+          className="w-full rounded-xl border border-dashed border-[var(--stroke)] px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--accent-warm)] transition hover:border-[var(--accent-warm)] hover:bg-[var(--accent-warm)]/5 disabled:opacity-60"
           disabled={disabled}
         >
           + Add a card

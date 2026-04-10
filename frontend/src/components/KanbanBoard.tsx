@@ -214,7 +214,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
       if (filterPriority !== "all" && card.priority !== filterPriority) {
         return false;
       }
-      if (filterLabelId !== "all" && !(card.labelIds || []).includes(filterLabelId)) {
+      if (filterLabelId !== "all" && !card.labelIds.includes(filterLabelId)) {
         return false;
       }
       return true;
@@ -461,7 +461,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
     const id = createId("lbl");
     void applyBoardUpdate((current) => ({
       ...current,
-      labels: [...(current.labels || []), { id, name, color: newLabelColor }],
+      labels: [...current.labels, { id, name, color: newLabelColor }],
     }));
     setNewLabelName("");
     setNewLabelColor(LABEL_COLOR_PALETTE[((board?.labels?.length ?? 0) + 1) % LABEL_COLOR_PALETTE.length]);
@@ -470,11 +470,11 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
   const handleDeleteLabel = (labelId: string) => {
     void applyBoardUpdate((current) => ({
       ...current,
-      labels: (current.labels || []).filter((l) => l.id !== labelId),
+      labels: current.labels.filter((l) => l.id !== labelId),
       cards: Object.fromEntries(
         Object.entries(current.cards).map(([id, card]) => [
           id,
-          { ...card, labelIds: (card.labelIds || []).filter((lid) => lid !== labelId) },
+          { ...card, labelIds: card.labelIds.filter((lid) => lid !== labelId) },
         ])
       ),
     }));
@@ -484,7 +484,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
     void applyBoardUpdate((current) => {
       const card = current.cards[cardId];
       if (!card) return current;
-      const currentLabelIds = card.labelIds || [];
+      const currentLabelIds = card.labelIds;
       const hasLabel = currentLabelIds.includes(labelId);
       return {
         ...current,
@@ -515,7 +515,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
           [cardId]: {
             ...card,
             comments: [
-              ...(card.comments || []),
+              ...card.comments,
               { id: commentId, text, createdAt: new Date().toISOString() },
             ],
           },
@@ -535,7 +535,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
           ...current.cards,
           [cardId]: {
             ...card,
-            comments: (card.comments || []).filter((c) => c.id !== commentId),
+            comments: card.comments.filter((c) => c.id !== commentId),
           },
         },
       };
@@ -796,17 +796,17 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
 
   return (
     <div className="relative overflow-hidden">
-      <div className="pointer-events-none absolute left-0 top-0 h-[420px] w-[420px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-[radial-gradient(circle,_rgba(32,157,215,0.25)_0%,_rgba(32,157,215,0.05)_55%,_transparent_70%)]" />
-      <div className="pointer-events-none absolute bottom-0 right-0 h-[520px] w-[520px] translate-x-1/4 translate-y-1/4 rounded-full bg-[radial-gradient(circle,_rgba(117,57,145,0.18)_0%,_rgba(117,57,145,0.05)_55%,_transparent_75%)]" />
+      <div className="pointer-events-none absolute left-0 top-0 h-[420px] w-[420px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-[radial-gradient(circle,_rgba(200,149,108,0.2)_0%,_rgba(200,149,108,0.05)_55%,_transparent_70%)]" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-[520px] w-[520px] translate-x-1/4 translate-y-1/4 rounded-full bg-[radial-gradient(circle,_rgba(107,58,36,0.12)_0%,_rgba(107,58,36,0.03)_55%,_transparent_75%)]" />
 
       <main className="relative mx-auto flex min-h-screen max-w-[1500px] flex-col gap-10 px-6 pb-16 pt-12">
         <header className="flex flex-col gap-6 rounded-[32px] border border-[var(--stroke)] bg-white/80 p-8 shadow-[var(--shadow)] backdrop-blur">
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--gray-text)]">
+              <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-[var(--gray-text)]">
                 Project Board
               </p>
-              <h1 className="mt-3 font-display text-4xl font-semibold text-[var(--navy-dark)]">
+              <h1 className="mt-3 font-display text-4xl text-[var(--navy-dark)]">
                 {boardName}
               </h1>
               {boardDescription ? (
@@ -823,15 +823,15 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               <div className="flex flex-wrap gap-3">
                 <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-3 text-center">
                   <p className="text-2xl font-semibold text-[var(--navy-dark)]">{boardStats.total}</p>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">Cards</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">Cards</p>
                 </div>
                 <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-3 text-center">
                   <p className="text-2xl font-semibold text-[var(--navy-dark)]">{boardStats.columns}</p>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">Stages</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">Stages</p>
                 </div>
                 <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-3 text-center">
                   <p className="text-2xl font-semibold text-red-600">{boardStats.byPriority.critical}</p>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">Critical</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">Critical</p>
                 </div>
                 {boardStats.overdue > 0 ? (
                   <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-center">
@@ -841,12 +841,12 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                 ) : null}
                 <div className="flex min-w-[120px] flex-col justify-center gap-1 rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">Progress</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">Progress</p>
                     <p className="text-xs font-semibold text-[var(--navy-dark)]">{boardStats.progressPercent}%</p>
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--stroke)]">
                     <div
-                      className="h-full rounded-full bg-[var(--primary-blue)] transition-all duration-300"
+                      className="h-full rounded-full bg-[var(--accent-warm)] transition-all duration-300"
                       style={{ width: `${boardStats.progressPercent}%` }}
                     />
                   </div>
@@ -883,7 +883,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                 onChange={(e) => setSearchQuery(e.target.value)}
                 ref={searchInputRef}
                 placeholder="Search cards... (press /)"
-                className="w-full rounded-full border border-[var(--stroke)] bg-white py-2 pl-9 pr-8 text-xs font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                className="w-full rounded-xl border border-[var(--stroke)] bg-white py-2 pl-9 pr-8 text-xs font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
                 data-testid="search-cards"
               />
               {searchQuery ? (
@@ -899,7 +899,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
             <select
               value={filterPriority}
               onChange={(e) => setFilterPriority(e.target.value as PriorityLevel | "all")}
-              className="rounded-full border border-[var(--stroke)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] outline-none"
+              className="rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--navy-dark)] outline-none"
               data-testid="filter-priority"
             >
               <option value="all">All priorities</option>
@@ -908,15 +908,15 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               <option value="medium">Medium</option>
               <option value="low">Low</option>
             </select>
-            {(board.labels || []).length > 0 ? (
+            {board.labels.length > 0 ? (
               <select
                 value={filterLabelId}
                 onChange={(e) => setFilterLabelId(e.target.value)}
-                className="rounded-full border border-[var(--stroke)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] outline-none"
+                className="rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--navy-dark)] outline-none"
                 data-testid="filter-label"
               >
                 <option value="all">All labels</option>
-                {(board.labels || []).map((label) => (
+                {board.labels.map((label) => (
                   <option key={label.id} value={label.id}>{label.name}</option>
                 ))}
               </select>
@@ -924,7 +924,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
             <select
               value={sortMode}
               onChange={(e) => setSortMode(e.target.value as typeof sortMode)}
-              className="rounded-full border border-[var(--stroke)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] outline-none"
+              className="rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--navy-dark)] outline-none"
               data-testid="sort-mode"
             >
               <option value="manual">Manual order</option>
@@ -935,7 +935,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
             <button
               type="button"
               onClick={() => setIsLabelManagerOpen(true)}
-              className="flex items-center gap-1.5 rounded-full border border-[var(--stroke)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)]"
+              className="flex items-center gap-1.5 rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--navy-dark)] transition hover:border-[var(--accent-warm)]"
               data-testid="open-label-manager"
             >
               <Tag className="h-3.5 w-3.5" />
@@ -943,7 +943,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
             </button>
           </div>
           {isSaving ? (
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--primary-blue)]">
+            <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-[var(--accent-warm)]">
               Saving changes...
             </p>
           ) : null}
@@ -976,15 +976,15 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                   isFirst={columnIndex === 0}
                   isLast={columnIndex === filteredColumns.length - 1}
                   disabled={isBusy}
-                  labels={board.labels || []}
+                  labels={board.labels}
                 />
               ))}
-              <section className="flex h-[430px] flex-col justify-center rounded-3xl border border-dashed border-[var(--stroke)] bg-white/60 p-4">
+              <section className="flex h-[430px] flex-col justify-center rounded-2xl border border-dashed border-[var(--stroke)] bg-white/60 p-4">
                 {!isAddingStage ? (
                   <button
                     type="button"
                     onClick={() => setIsAddingStage(true)}
-                    className="mx-auto flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)]"
+                    className="mx-auto flex items-center gap-2 rounded-xl border border-[var(--stroke)] bg-white px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--navy-dark)] transition hover:border-[var(--accent-warm)]"
                     disabled={isBusy}
                     data-testid="inline-add-stage-button"
                   >
@@ -1003,13 +1003,13 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                       value={newStageTitle}
                       onChange={(event) => setNewStageTitle(event.target.value)}
                       placeholder="New stage name"
-                      className="w-full rounded-full border border-[var(--stroke)] bg-white px-3 py-2 text-xs font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                      className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-xs font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
                       disabled={isBusy}
                     />
                     <div className="flex items-center justify-center gap-2">
                       <button
                         type="submit"
-                        className="rounded-full bg-[var(--secondary-purple)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
+                        className="rounded-xl bg-[var(--accent-deep)] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition hover:brightness-110 disabled:opacity-60"
                         disabled={isBusy || !newStageTitle.trim()}
                         data-testid="inline-confirm-add-stage"
                       >
@@ -1021,7 +1021,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                           setIsAddingStage(false);
                           setNewStageTitle("");
                         }}
-                        className="rounded-full border border-[var(--stroke)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+                        className="rounded-xl border border-[var(--stroke)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
                         disabled={isBusy}
                       >
                         Cancel
@@ -1046,7 +1046,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
       <button
         type="button"
         onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--secondary-purple)] text-xl font-semibold text-white shadow-[var(--shadow)] transition hover:brightness-110"
+        className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--accent-deep)] text-xl font-semibold text-white shadow-[var(--shadow)] transition hover:brightness-110"
         data-testid="open-ai-chat"
       >
         AI
@@ -1054,20 +1054,20 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
 
       {isChatOpen ? (
         <div
-          className="fixed inset-0 z-30 flex items-end justify-end bg-[rgba(3,33,71,0.2)] p-4 backdrop-blur-[1px] sm:items-center"
+          className="fixed inset-0 z-30 flex items-end justify-end bg-[rgba(44,24,16,0.15)] p-4 backdrop-blur-[1px] sm:items-center"
           onClick={() => setIsChatOpen(false)}
           data-testid="ai-chat-modal"
         >
           <aside
-            className="modal-dialog-enter flex h-[420px] w-full max-w-sm flex-col rounded-3xl border border-[var(--stroke)] bg-white p-4 shadow-[var(--shadow)]"
+            className="modal-dialog-enter flex h-[420px] w-full max-w-sm flex-col rounded-2xl border border-[var(--stroke)] bg-white p-4 shadow-[var(--shadow)]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between border-b border-[var(--stroke)] pb-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+                <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
                   AI Assistant
                 </p>
-                <h2 className="mt-1 font-display text-lg font-semibold text-[var(--navy-dark)]">
+                <h2 className="mt-1 font-display text-lg text-[var(--navy-dark)]">
                   Board Copilot
                 </h2>
               </div>
@@ -1091,7 +1091,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                   key={`${message.role}-${index}`}
                   className={
                     message.role === "user"
-                      ? "self-end rounded-2xl bg-[var(--primary-blue)] px-4 py-2 text-sm text-white"
+                      ? "self-end rounded-2xl bg-[var(--accent-deep)] px-4 py-2 text-sm text-white"
                       : "self-start rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--navy-dark)]"
                   }
                 >
@@ -1106,7 +1106,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                 onChange={(event) => setChatInput(event.target.value)}
                 placeholder="Ask AI to explain or update this board..."
                 rows={3}
-                className="w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                className="w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
                 data-testid="ai-chat-input"
                 disabled={isChatting}
               />
@@ -1117,7 +1117,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               ) : null}
               <button
                 type="submit"
-                className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
+                className="rounded-xl bg-[var(--accent-deep)] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition hover:brightness-110 disabled:opacity-60"
                 data-testid="ai-chat-send"
                 disabled={isChatting || !chatInput.trim()}
               >
@@ -1130,22 +1130,22 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
 
       {editingCard ? (
         <div
-          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(3,33,71,0.35)] px-4 backdrop-blur-[2px]"
+          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(44,24,16,0.3)] px-4 backdrop-blur-[2px]"
           onClick={() => setEditingCard(null)}
           data-testid="edit-card-modal"
         >
           <div
-            className="modal-dialog-enter w-full max-w-lg rounded-3xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
+            className="modal-dialog-enter w-full max-w-lg rounded-2xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
               Edit card
             </p>
-            <h3 className="mt-2 font-display text-xl font-semibold text-[var(--navy-dark)]">
+            <h3 className="mt-2 font-display text-xl text-[var(--navy-dark)]">
               Update card details
             </h3>
             <div className="mt-5 space-y-3">
-              <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
                 Card title
               </label>
               <input
@@ -1155,10 +1155,10 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                     current ? { ...current, title: event.target.value } : current
                   )
                 }
-                className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
                 disabled={isBusy}
               />
-              <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
                 Card description
               </label>
               <textarea
@@ -1169,10 +1169,10 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                   )
                 }
                 rows={4}
-                className="w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--gray-text)] outline-none transition focus:border-[var(--primary-blue)]"
+                className="w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--gray-text)] outline-none transition focus:border-[var(--accent-warm)]"
                 disabled={isBusy}
               />
-              <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
                 Priority
               </label>
               <select
@@ -1187,7 +1187,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                       : current
                   )
                 }
-                className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
                 disabled={isBusy}
               >
                 <option value="critical">Critical</option>
@@ -1195,7 +1195,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
               </select>
-              <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
                 Due date
               </label>
               <input
@@ -1208,16 +1208,16 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                       : current
                   )
                 }
-                className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
                 disabled={isBusy}
               />
-              {(board.labels || []).length > 0 ? (
+              {board.labels.length > 0 ? (
                 <>
-                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+                  <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
                     Labels
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {(board.labels || []).map((label) => {
+                    {board.labels.map((label) => {
                       const isSelected = (board.cards[editingCard.cardId]?.labelIds || []).includes(label.id);
                       return (
                         <button
@@ -1243,7 +1243,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
             </div>
 
             <div className="mt-4 border-t border-[var(--stroke)] pt-4">
-              <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
                 Comments ({(board.cards[editingCard.cardId]?.comments || []).length})
               </label>
               <div className="mt-2 max-h-[160px] space-y-2 overflow-y-auto">
@@ -1273,7 +1273,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                   value={newCommentText}
                   onChange={(e) => setNewCommentText(e.target.value)}
                   placeholder="Add a comment..."
-                  className="flex-1 rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                  className="flex-1 rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
@@ -1286,7 +1286,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                 <button
                   type="button"
                   onClick={() => handleAddComment(editingCard.cardId)}
-                  className="rounded-full bg-[var(--secondary-purple)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
+                  className="rounded-xl bg-[var(--accent-deep)] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition hover:brightness-110 disabled:opacity-60"
                   disabled={isBusy || !newCommentText.trim()}
                   data-testid="add-comment-button"
                 >
@@ -1299,7 +1299,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               <button
                 type="button"
                 onClick={() => { setEditingCard(null); setNewCommentText(""); }}
-                className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+                className="rounded-xl border border-[var(--stroke)] px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
                 disabled={isBusy}
               >
                 Cancel
@@ -1307,7 +1307,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               <button
                 type="button"
                 onClick={handleSaveCardEdit}
-                className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
+                className="rounded-xl bg-[var(--accent-deep)] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition hover:brightness-110 disabled:opacity-60"
                 disabled={isBusy || !editingCard.title.trim()}
                 data-testid="save-card-edits"
               >
@@ -1320,22 +1320,22 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
 
       {addCardState && addCardColumn ? (
         <div
-          className="modal-overlay-enter fixed inset-0 z-50 flex items-center justify-center bg-[rgba(3,33,71,0.35)] px-4 backdrop-blur-[2px]"
+          className="modal-overlay-enter fixed inset-0 z-50 flex items-center justify-center bg-[rgba(44,24,16,0.3)] px-4 backdrop-blur-[2px]"
           onClick={closeAddCardModal}
           data-testid="add-card-modal"
         >
           <div
-            className="modal-dialog-enter w-full max-w-xl rounded-3xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
+            className="modal-dialog-enter w-full max-w-xl rounded-2xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
               Add new card
             </p>
-            <h3 className="mt-2 font-display text-xl font-semibold text-[var(--navy-dark)]">
+            <h3 className="mt-2 font-display text-xl text-[var(--navy-dark)]">
               Add New Card to {addCardColumn.title}
             </h3>
 
-            <label className="mt-5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+            <label className="mt-5 block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
               Card title
             </label>
             <input
@@ -1346,11 +1346,11 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                 )
               }
               placeholder="Card title"
-              className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+              className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
               disabled={isBusy}
             />
 
-            <label className="mt-4 block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+            <label className="mt-4 block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
               Details
             </label>
             <textarea
@@ -1362,11 +1362,11 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               }
               placeholder="Details"
               rows={5}
-              className="mt-1 min-h-[120px] w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--gray-text)] outline-none transition focus:border-[var(--primary-blue)]"
+              className="mt-1 min-h-[120px] w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--gray-text)] outline-none transition focus:border-[var(--accent-warm)]"
               disabled={isBusy}
             />
 
-            <label className="mt-4 block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+            <label className="mt-4 block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
               Priority
             </label>
             <select
@@ -1378,7 +1378,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                     : current
                 )
               }
-              className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+              className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
               disabled={isBusy}
             >
               <option value="critical">Critical</option>
@@ -1387,7 +1387,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               <option value="low">Low</option>
             </select>
 
-            <label className="mt-4 block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+            <label className="mt-4 block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
               Due date (optional)
             </label>
             <input
@@ -1400,7 +1400,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                     : current
                 )
               }
-              className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+              className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
               disabled={isBusy}
             />
 
@@ -1408,7 +1408,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               <button
                 type="button"
                 onClick={closeAddCardModal}
-                className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+                className="rounded-xl border border-[var(--stroke)] px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
                 disabled={isBusy}
               >
                 Cancel
@@ -1416,7 +1416,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               <button
                 type="button"
                 onClick={submitAddCardModal}
-                className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
+                className="rounded-xl bg-[var(--accent-deep)] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition hover:brightness-110 disabled:opacity-60"
                 disabled={isBusy || !addCardState.title.trim()}
                 data-testid="confirm-add-card"
               >
@@ -1429,17 +1429,17 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
 
       {stagePopupColumn ? (
         <div
-          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(3,33,71,0.35)] px-4 backdrop-blur-[2px]"
+          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(44,24,16,0.3)] px-4 backdrop-blur-[2px]"
           onClick={closeStagePopup}
           data-testid="stage-popup-modal"
         >
           <div
-            className="modal-dialog-enter flex max-h-[90vh] w-full max-w-3xl flex-col rounded-3xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
+            className="modal-dialog-enter flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--stroke)] pb-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+                <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
                   Expanded stage view
                 </p>
                 <div className="mt-2 flex items-center gap-2 text-[var(--navy-dark)]">
@@ -1462,7 +1462,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               <button
                 type="button"
                 onClick={closeStagePopup}
-                className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+                className="rounded-xl border border-[var(--stroke)] px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
               >
                 Close
               </button>
@@ -1480,7 +1480,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
             </div>
 
             <div className="mt-4 flex-1 overflow-hidden rounded-2xl border border-[var(--stroke)] p-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
                 Cards in this stage
               </p>
               <div className="mt-3 flex max-h-[280px] flex-col gap-3 overflow-y-auto pr-1">
@@ -1509,7 +1509,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                         <button
                           type="button"
                           onClick={() => handleReorderCardInStage(stagePopupColumn.id, card.id, "up")}
-                          className="rounded-full border border-[var(--stroke)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)] disabled:opacity-50"
+                          className="rounded-full border border-[var(--stroke)] px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)] disabled:opacity-50"
                           disabled={isBusy || index === 0}
                         >
                           Move up
@@ -1519,7 +1519,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                           onClick={() =>
                             handleReorderCardInStage(stagePopupColumn.id, card.id, "down")
                           }
-                          className="rounded-full border border-[var(--stroke)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)] disabled:opacity-50"
+                          className="rounded-full border border-[var(--stroke)] px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)] disabled:opacity-50"
                           disabled={isBusy || index === stagePopupCards.length - 1}
                         >
                           Move down
@@ -1527,7 +1527,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                         <button
                           type="button"
                           onClick={() => handleDeleteCard(stagePopupColumn.id, card.id)}
-                          className="rounded-full border border-transparent px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:border-[var(--stroke)] hover:text-[var(--navy-dark)]"
+                          className="rounded-full border border-transparent px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)] transition hover:border-[var(--stroke)] hover:text-[var(--navy-dark)]"
                           disabled={isBusy}
                         >
                           Remove
@@ -1537,7 +1537,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                   </article>
                 ))}
                 {stagePopupCards.length === 0 ? (
-                  <p className="rounded-2xl border border-dashed border-[var(--stroke)] px-4 py-6 text-center text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
+                  <p className="rounded-2xl border border-dashed border-[var(--stroke)] px-4 py-6 text-center text-[11px] font-medium uppercase tracking-[0.15em] text-[var(--gray-text)]">
                     No cards in this stage
                   </p>
                 ) : null}
@@ -1545,13 +1545,13 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
             </div>
 
             <div className="mt-4 rounded-2xl border border-[var(--stroke)] p-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
                 Add a card
               </p>
               <button
                 type="button"
                 onClick={() => openAddCardModal(stagePopupColumn.id)}
-                className="mt-2 w-full rounded-full border border-dashed border-[var(--stroke)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--primary-blue)] transition hover:border-[var(--primary-blue)] disabled:opacity-60"
+                className="mt-2 w-full rounded-full border border-dashed border-[var(--stroke)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--primary-blue)] transition hover:border-[var(--accent-warm)] disabled:opacity-60"
                 disabled={isBusy}
               >
                 + Add a card
@@ -1563,32 +1563,32 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
 
       {stagePopupColumn && isStageSettingsOpen ? (
         <div
-          className="modal-overlay-enter fixed inset-0 z-50 flex items-center justify-center bg-[rgba(3,33,71,0.35)] px-4 backdrop-blur-[2px]"
+          className="modal-overlay-enter fixed inset-0 z-50 flex items-center justify-center bg-[rgba(44,24,16,0.3)] px-4 backdrop-blur-[2px]"
           onClick={() => setIsStageSettingsOpen(false)}
           data-testid="stage-settings-modal"
         >
           <div
-            className="modal-dialog-enter w-full max-w-lg rounded-3xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
+            className="modal-dialog-enter w-full max-w-lg rounded-2xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
               Stage settings
             </p>
-            <h3 className="mt-2 font-display text-xl font-semibold text-[var(--navy-dark)]">
+            <h3 className="mt-2 font-display text-xl text-[var(--navy-dark)]">
               Customize {stagePopupColumn.title}
             </h3>
 
-            <label className="mt-4 block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+            <label className="mt-4 block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
               Stage name
             </label>
             <input
               value={stagePopupColumn.title}
               onChange={(event) => handleRenameColumn(stagePopupColumn.id, event.target.value)}
               aria-label="Stage name"
-              className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+              className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
               disabled={isBusy}
             />
-            <p className="mt-4 text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+            <p className="mt-4 text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
               Stage icon
             </p>
             <div className="mt-1 rounded-2xl border border-[var(--stroke)] p-4">
@@ -1620,7 +1620,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               <button
                 type="button"
                 onClick={() => setIsStageSettingsOpen(false)}
-                className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+                className="rounded-xl border border-[var(--stroke)] px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
               >
                 Close
               </button>
@@ -1644,23 +1644,23 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
 
       {isLabelManagerOpen ? (
         <div
-          className="modal-overlay-enter fixed inset-0 z-50 flex items-center justify-center bg-[rgba(3,33,71,0.35)] px-4 backdrop-blur-[2px]"
+          className="modal-overlay-enter fixed inset-0 z-50 flex items-center justify-center bg-[rgba(44,24,16,0.3)] px-4 backdrop-blur-[2px]"
           onClick={() => setIsLabelManagerOpen(false)}
           data-testid="label-manager-modal"
         >
           <div
-            className="modal-dialog-enter w-full max-w-lg rounded-3xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
+            className="modal-dialog-enter w-full max-w-lg rounded-2xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
               Board labels
             </p>
-            <h3 className="mt-2 font-display text-xl font-semibold text-[var(--navy-dark)]">
+            <h3 className="mt-2 font-display text-xl text-[var(--navy-dark)]">
               Manage Labels
             </h3>
 
             <div className="mt-4 space-y-2">
-              {(board.labels || []).map((label) => (
+              {board.labels.map((label) => (
                 <div key={label.id} className="flex items-center gap-2 rounded-xl border border-[var(--stroke)] p-2">
                   <span
                     className="h-4 w-4 shrink-0 rounded-full"
@@ -1679,7 +1679,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                   </button>
                 </div>
               ))}
-              {(board.labels || []).length === 0 ? (
+              {board.labels.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-[var(--stroke)] p-4 text-center text-xs text-[var(--gray-text)]">
                   No labels yet. Add one below.
                 </p>
@@ -1691,7 +1691,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
                 value={newLabelName}
                 onChange={(e) => setNewLabelName(e.target.value)}
                 placeholder="Label name"
-                className="flex-1 rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                className="flex-1 rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
                 data-testid="new-label-name"
               />
               <div className="flex gap-1">
@@ -1711,7 +1711,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               <button
                 type="button"
                 onClick={handleAddLabel}
-                className="rounded-full bg-[var(--secondary-purple)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
+                className="rounded-xl bg-[var(--accent-deep)] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition hover:brightness-110 disabled:opacity-60"
                 disabled={isBusy || !newLabelName.trim()}
                 data-testid="add-label-button"
               >
@@ -1723,7 +1723,7 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               <button
                 type="button"
                 onClick={() => setIsLabelManagerOpen(false)}
-                className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+                className="rounded-xl border border-[var(--stroke)] px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
               >
                 Close
               </button>
@@ -1734,18 +1734,18 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
 
       {pendingStageRemoval ? (
         <div
-          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(3,33,71,0.35)] px-4 backdrop-blur-[2px]"
+          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(44,24,16,0.3)] px-4 backdrop-blur-[2px]"
           data-testid="remove-stage-modal"
           onClick={cancelRemoveStage}
         >
           <div
-            className="modal-dialog-enter w-full max-w-md rounded-3xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
+            className="modal-dialog-enter w-full max-w-md rounded-2xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
               Confirm removal
             </p>
-            <h3 className="mt-2 font-display text-xl font-semibold text-[var(--navy-dark)]">
+            <h3 className="mt-2 font-display text-xl text-[var(--navy-dark)]">
               Remove stage &quot;{pendingStageRemoval.title}&quot;?
             </h3>
             <p className="mt-3 text-sm text-[var(--gray-text)]">
@@ -1757,14 +1757,14 @@ export const KanbanBoard = ({ username = "user", useApi = true, boardId }: Kanba
               <button
                 type="button"
                 onClick={cancelRemoveStage}
-                className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+                className="rounded-xl border border-[var(--stroke)] px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={confirmRemoveStage}
-                className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110"
+                className="rounded-xl bg-[var(--accent-deep)] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition hover:brightness-110"
                 data-testid="confirm-remove-stage"
               >
                 Remove stage

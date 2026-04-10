@@ -179,7 +179,7 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
               setActiveBoardId(null);
               void loadBoards();
             }}
-            className="flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)]"
+            className="flex items-center gap-2 rounded-xl border border-[var(--stroke)] bg-white px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--navy-dark)] transition hover:border-[var(--accent-warm)] hover:text-[var(--accent-warm)]"
           >
             <LayoutDashboard className="h-4 w-4" />
             All boards
@@ -189,7 +189,7 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
           <button
             type="button"
             onClick={toggleDarkMode}
-            className="flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-white px-3 py-2 text-xs font-semibold text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)]"
+            className="flex items-center gap-2 rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-[11px] font-medium text-[var(--navy-dark)] transition hover:border-[var(--accent-warm)] hover:text-[var(--accent-warm)]"
             aria-label="Toggle dark mode"
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -197,7 +197,7 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
           <button
             type="button"
             onClick={onLogout}
-            className="rounded-full border border-[var(--stroke)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)]"
+            className="rounded-xl border border-[var(--stroke)] bg-white px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--navy-dark)] transition hover:border-[var(--accent-warm)] hover:text-[var(--accent-warm)]"
           >
             Log out
           </button>
@@ -209,26 +209,31 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
 
   return (
     <div className="relative overflow-hidden">
-      <div className="pointer-events-none absolute left-0 top-0 h-[420px] w-[420px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-[radial-gradient(circle,_rgba(32,157,215,0.25)_0%,_rgba(32,157,215,0.05)_55%,_transparent_70%)]" />
-      <div className="pointer-events-none absolute bottom-0 right-0 h-[520px] w-[520px] translate-x-1/4 translate-y-1/4 rounded-full bg-[radial-gradient(circle,_rgba(117,57,145,0.18)_0%,_rgba(117,57,145,0.05)_55%,_transparent_75%)]" />
+      <div className="pointer-events-none absolute left-0 top-0 h-[500px] w-[500px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-[radial-gradient(circle,_rgba(200,149,108,0.2)_0%,_rgba(200,149,108,0.05)_55%,_transparent_70%)]" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-[500px] w-[500px] translate-x-1/4 translate-y-1/4 rounded-full bg-[radial-gradient(circle,_rgba(107,58,36,0.12)_0%,_rgba(107,58,36,0.03)_55%,_transparent_75%)]" />
 
       <main className="relative mx-auto flex min-h-screen max-w-[1200px] flex-col gap-8 px-6 pb-16 pt-12">
-        <header className="flex flex-wrap items-start justify-between gap-6 rounded-[32px] border border-[var(--stroke)] bg-white/80 p-8 shadow-[var(--shadow)] backdrop-blur">
+        <header className="flex flex-wrap items-start justify-between gap-6 rounded-2xl border border-[var(--stroke)] bg-white/80 p-8 shadow-[var(--shadow)] backdrop-blur">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--gray-text)]">
-              Welcome back, {username}
-            </p>
-            <h1 className="mt-3 font-display text-4xl font-semibold text-[var(--navy-dark)]">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent-deep)] text-xs font-bold text-white">
+                K
+              </div>
+              <span className="text-[10px] font-medium uppercase tracking-[0.3em] text-[var(--gray-text)]">
+                {username}
+              </span>
+            </div>
+            <h1 className="font-display text-4xl text-[var(--navy-dark)]">
               Your Boards
             </h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--gray-text)]">
+            <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-[var(--gray-text)]">
               Manage your projects. Each board is an independent kanban workspace
               with its own columns and cards.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <label
-              className="flex cursor-pointer items-center gap-2 rounded-full border border-[var(--stroke)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)]"
+              className="flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--stroke)] bg-white px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--navy-dark)] transition hover:border-[var(--accent-warm)] hover:text-[var(--accent-warm)]"
             >
               <Upload className="h-4 w-4" />
               Import
@@ -254,7 +259,7 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
                 setCurrentPassword("");
                 setNewPassword("");
               }}
-              className="flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)]"
+              className="flex items-center gap-2 rounded-xl border border-[var(--stroke)] bg-white px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--navy-dark)] transition hover:border-[var(--accent-warm)] hover:text-[var(--accent-warm)]"
             >
               <KeyRound className="h-4 w-4" />
               Password
@@ -262,7 +267,7 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
             <button
               type="button"
               onClick={toggleDarkMode}
-              className="flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)]"
+              className="flex items-center gap-2 rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-[11px] font-medium text-[var(--navy-dark)] transition hover:border-[var(--accent-warm)] hover:text-[var(--accent-warm)]"
               aria-label="Toggle dark mode"
             >
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -270,7 +275,7 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
             <button
               type="button"
               onClick={onLogout}
-              className="rounded-full border border-[var(--stroke)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)]"
+              className="rounded-xl border border-[var(--stroke)] bg-white px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--navy-dark)] transition hover:border-[var(--accent-warm)] hover:text-[var(--accent-warm)]"
             >
               Log out
             </button>
@@ -294,13 +299,13 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
             {boards.map((board) => (
               <article
                 key={board.id}
-                className="group cursor-pointer rounded-3xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)] transition hover:border-[var(--primary-blue)] hover:shadow-lg"
+                className="group cursor-pointer rounded-2xl border border-[var(--stroke)] bg-white p-6 shadow-[0_2px_8px_rgba(44,24,16,0.05)] transition hover:border-[var(--accent-warm)] hover:shadow-[0_8px_24px_rgba(44,24,16,0.1)]"
                 onClick={() => setActiveBoardId(board.id)}
                 data-testid={`board-card-${board.id}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-display text-lg font-semibold text-[var(--navy-dark)]">
+                    <h2 className="truncate font-display text-lg text-[var(--navy-dark)]">
                       {board.name}
                     </h2>
                     {board.description ? (
@@ -372,12 +377,12 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
             ))}
 
             <article
-              className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-[var(--stroke)] bg-white/60 p-6 transition hover:border-[var(--primary-blue)] hover:shadow-lg"
+              className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[var(--stroke)] bg-white/60 p-6 transition hover:border-[var(--accent-warm)] hover:shadow-[0_8px_24px_rgba(44,24,16,0.1)]"
               onClick={() => setIsCreating(true)}
               data-testid="create-board-button"
             >
               <PlusCircle className="h-10 w-10 text-[var(--gray-text)]" />
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
+              <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-[var(--gray-text)]">
                 New board
               </p>
             </article>
@@ -388,35 +393,35 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
       {/* Create Board Modal */}
       {isCreating ? (
         <div
-          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(3,33,71,0.35)] px-4 backdrop-blur-[2px]"
+          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(44,24,16,0.3)] px-4 backdrop-blur-[2px]"
           onClick={() => setIsCreating(false)}
         >
           <div
-            className="modal-dialog-enter w-full max-w-lg rounded-3xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
+            className="modal-dialog-enter w-full max-w-lg rounded-2xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
               New board
             </p>
-            <h3 className="mt-2 font-display text-xl font-semibold text-[var(--navy-dark)]">
+            <h3 className="mt-2 font-display text-xl text-[var(--navy-dark)]">
               Create a new board
             </h3>
             <form className="mt-5 space-y-4" onSubmit={handleCreateBoard}>
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+                <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
                   Board name
                 </label>
                 <input
                   value={newBoardName}
                   onChange={(e) => setNewBoardName(e.target.value)}
                   placeholder="e.g. Sprint Board"
-                  className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                  className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-4 py-2.5 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)] focus:ring-1 focus:ring-[var(--accent-warm)]"
                   data-testid="new-board-name"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+                <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
                   Description (optional)
                 </label>
                 <textarea
@@ -428,7 +433,7 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+                <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
                   Template
                 </label>
                 <div className="mt-1 grid grid-cols-2 gap-2">
@@ -444,8 +449,8 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
                       onClick={() => setNewBoardTemplate(t.id)}
                       className={`rounded-xl border p-3 text-left transition ${
                         newBoardTemplate === t.id
-                          ? "border-[var(--primary-blue)] bg-blue-50"
-                          : "border-[var(--stroke)] hover:border-[var(--primary-blue)]"
+                          ? "border-[var(--accent-warm)] bg-[var(--accent-warm)]/10"
+                          : "border-[var(--stroke)] hover:border-[var(--accent-warm)]"
                       }`}
                     >
                       <p className="text-xs font-semibold text-[var(--navy-dark)]">{t.label}</p>
@@ -463,13 +468,13 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
                     setNewBoardDescription("");
                     setNewBoardTemplate("kanban");
                   }}
-                  className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+                  className="rounded-xl border border-[var(--stroke)] px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
+                  className="rounded-xl bg-[var(--accent-deep)] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition hover:brightness-110 disabled:opacity-60"
                   disabled={!newBoardName.trim()}
                   data-testid="confirm-create-board"
                 >
@@ -484,22 +489,22 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
       {/* Edit Board Modal */}
       {editingBoard ? (
         <div
-          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(3,33,71,0.35)] px-4 backdrop-blur-[2px]"
+          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(44,24,16,0.3)] px-4 backdrop-blur-[2px]"
           onClick={() => setEditingBoard(null)}
         >
           <div
-            className="modal-dialog-enter w-full max-w-lg rounded-3xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
+            className="modal-dialog-enter w-full max-w-lg rounded-2xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
               Edit board
             </p>
-            <h3 className="mt-2 font-display text-xl font-semibold text-[var(--navy-dark)]">
+            <h3 className="mt-2 font-display text-xl text-[var(--navy-dark)]">
               Update board details
             </h3>
             <div className="mt-5 space-y-4">
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+                <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
                   Board name
                 </label>
                 <input
@@ -509,11 +514,11 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
                       prev ? { ...prev, name: e.target.value } : prev
                     )
                   }
-                  className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                  className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-4 py-2.5 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)] focus:ring-1 focus:ring-[var(--accent-warm)]"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+                <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
                   Description
                 </label>
                 <textarea
@@ -531,14 +536,14 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
                 <button
                   type="button"
                   onClick={() => setEditingBoard(null)}
-                  className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+                  className="rounded-xl border border-[var(--stroke)] px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleUpdateMeta}
-                  className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
+                  className="rounded-xl bg-[var(--accent-deep)] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition hover:brightness-110 disabled:opacity-60"
                   disabled={!editingBoard.name.trim()}
                 >
                   Save
@@ -552,17 +557,17 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
       {/* Delete Board Confirmation */}
       {pendingDelete ? (
         <div
-          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(3,33,71,0.35)] px-4 backdrop-blur-[2px]"
+          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(44,24,16,0.3)] px-4 backdrop-blur-[2px]"
           onClick={() => setPendingDelete(null)}
         >
           <div
-            className="modal-dialog-enter w-full max-w-md rounded-3xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
+            className="modal-dialog-enter w-full max-w-md rounded-2xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
               Confirm deletion
             </p>
-            <h3 className="mt-2 font-display text-xl font-semibold text-[var(--navy-dark)]">
+            <h3 className="mt-2 font-display text-xl text-[var(--navy-dark)]">
               Delete &quot;{pendingDelete.name}&quot;?
             </h3>
             <p className="mt-3 text-sm text-[var(--gray-text)]">
@@ -573,7 +578,7 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
               <button
                 type="button"
                 onClick={() => setPendingDelete(null)}
-                className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+                className="rounded-xl border border-[var(--stroke)] px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
               >
                 Cancel
               </button>
@@ -593,34 +598,34 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
       {/* Change Password Modal */}
       {isChangingPassword ? (
         <div
-          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(3,33,71,0.35)] px-4 backdrop-blur-[2px]"
+          className="modal-overlay-enter fixed inset-0 z-40 flex items-center justify-center bg-[rgba(44,24,16,0.3)] px-4 backdrop-blur-[2px]"
           onClick={() => setIsChangingPassword(false)}
         >
           <div
-            className="modal-dialog-enter w-full max-w-md rounded-3xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
+            className="modal-dialog-enter w-full max-w-md rounded-2xl border border-[var(--stroke)] bg-white p-6 shadow-[var(--shadow)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gray-text)]">
               Security
             </p>
-            <h3 className="mt-2 font-display text-xl font-semibold text-[var(--navy-dark)]">
+            <h3 className="mt-2 font-display text-xl text-[var(--navy-dark)]">
               Change password
             </h3>
             <form className="mt-5 space-y-4" onSubmit={handleChangePassword}>
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+                <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
                   Current password
                 </label>
                 <input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                  className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-4 py-2.5 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)] focus:ring-1 focus:ring-[var(--accent-warm)]"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--gray-text)]">
+                <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--gray-text)]">
                   New password
                 </label>
                 <input
@@ -628,7 +633,7 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="At least 6 characters"
-                  className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                  className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-4 py-2.5 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)] focus:ring-1 focus:ring-[var(--accent-warm)]"
                 />
               </div>
               {passwordError ? (
@@ -641,13 +646,13 @@ export const BoardDashboard = ({ username, onLogout }: BoardDashboardProps) => {
                 <button
                   type="button"
                   onClick={() => setIsChangingPassword(false)}
-                  className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+                  className="rounded-xl border border-[var(--stroke)] px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
+                  className="rounded-xl bg-[var(--accent-deep)] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition hover:brightness-110 disabled:opacity-60"
                   disabled={!currentPassword || !newPassword}
                 >
                   Update password

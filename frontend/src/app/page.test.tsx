@@ -11,7 +11,7 @@ describe("Home auth flow", () => {
 
   it("blocks access until login", () => {
     render(<Home />);
-    expect(screen.getByRole("heading", { name: /sign in to continue/i })).toBeVisible();
+    expect(screen.getByRole("heading", { name: /welcome back/i })).toBeVisible();
   });
 
   it("shows error on invalid credentials", async () => {

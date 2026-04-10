@@ -36,7 +36,7 @@ export const NewCardForm = ({ onAdd, disabled = false }: NewCardFormProps) => {
               setFormState((prev) => ({ ...prev, title: event.target.value }))
             }
             placeholder="Card title"
-            className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+            className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
             required
             disabled={disabled}
           />
@@ -47,7 +47,7 @@ export const NewCardForm = ({ onAdd, disabled = false }: NewCardFormProps) => {
             }
             placeholder="Details"
             rows={3}
-            className="w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--gray-text)] outline-none transition focus:border-[var(--primary-blue)]"
+            className="w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--gray-text)] outline-none transition focus:border-[var(--accent-warm)]"
             disabled={disabled}
           />
           <select
@@ -58,7 +58,7 @@ export const NewCardForm = ({ onAdd, disabled = false }: NewCardFormProps) => {
                 priority: event.target.value as PriorityLevel,
               }))
             }
-            className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+            className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--accent-warm)]"
             disabled={disabled}
           >
             <option value="critical">Critical</option>
@@ -69,7 +69,7 @@ export const NewCardForm = ({ onAdd, disabled = false }: NewCardFormProps) => {
           <div className="flex items-center gap-2">
             <button
               type="submit"
-              className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110"
+              className="rounded-xl bg-[var(--accent-deep)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110"
               disabled={disabled}
             >
               Add card
@@ -91,7 +91,7 @@ export const NewCardForm = ({ onAdd, disabled = false }: NewCardFormProps) => {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="w-full rounded-full border border-dashed border-[var(--stroke)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--primary-blue)] transition hover:border-[var(--primary-blue)]"
+          className="w-full rounded-full border border-dashed border-[var(--stroke)] px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-[var(--accent-warm)] transition hover:border-[var(--accent-warm)]"
           disabled={disabled}
         >
           Add a card
