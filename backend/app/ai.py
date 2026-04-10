@@ -106,42 +106,20 @@ def is_ai_enabled() -> bool:
 
 
 def _extract_json_object(text: str) -> dict:
-    """
-    Extract JSON object from AI response with multiple fallback strategies.
-
-    The AI might return JSON in various formats:
-    1. Plain JSON: {"reply": "..."}
-    2. Markdown fenced: ```json\n{"reply": "..."}\n```
-    3. With explanation: Here is the response: {"reply": "..."}
-
-    Args:
-        text: Raw AI response text
-
-    Returns:
-        Parsed JSON dictionary
-
-    Raises:
-        json.JSONDecodeError: If no valid JSON object can be extracted
-    """
+    """Extract a JSON object from AI response text, handling markdown fences and surrounding text."""
     stripped = text.strip()
 
-    # Strategy 1: Strip markdown code fences
     if stripped.startswith("```"):
         stripped = stripped.strip("`").strip()
-        # Remove 'json' language hint if present
         if stripped.startswith("json"):
             stripped = stripped[4:].strip()
 
-    # Strategy 2: Try direct JSON parse (most common case)
     try:
         parsed = json.loads(stripped)
         if isinstance(parsed, dict):
             return parsed
     except json.JSONDecodeError:
         pass
-
-    # Strategy 3: Extract first JSON object from surrounding text
-    # Find first '{' and last '}' to isolate JSON object
     start = stripped.find("{")
     end = stripped.rfind("}")
     if start != -1 and end != -1 and end > start:
@@ -247,50 +225,23 @@ def run_structured_board_chat(
         f"{question}"
     )
 
-    attempt_messages = [
+    messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": context_prompt},
     ]
-    # Single structured attempt, then plain-text fallback to reduce latency.
-    for _ in range(1):
-        raw = call_openrouter(
-            attempt_messages,
-            response_format={"type": "json_object"},
-        )
-        try:
-            parsed = _extract_json_object(raw)
-            try:
-                return AIChatStructuredResponse.model_validate(parsed)
-            except Exception:
-                # Safe fallback: preserve assistant reply, ignore invalid board updates.
-                if isinstance(parsed, dict) and isinstance(parsed.get("reply"), str):
-                    return AIChatStructuredResponse(reply=parsed["reply"], board_update=None)
-                raise
-        except json.JSONDecodeError:
-            attempt_messages.append(
-                {
-                    "role": "system",
-                    "content": (
-                        "Your previous response was invalid. Reply with ONLY a JSON object "
-                        "matching keys: reply (string), board_update (null or board object)."
-                    ),
-                }
-            )
-            continue
-        except Exception:
-            attempt_messages.append(
-                {
-                    "role": "system",
-                    "content": (
-                        "Your previous response had invalid schema. "
-                        "Reply with ONLY JSON containing reply (string) and "
-                        "board_update (null or complete board object)."
-                    ),
-                }
-            )
-            continue
 
-    # Final safe fallback: return plain reply with no board mutation.
+    raw = call_openrouter(messages, response_format={"type": "json_object"})
+    try:
+        parsed = _extract_json_object(raw)
+        try:
+            return AIChatStructuredResponse.model_validate(parsed)
+        except Exception:
+            if isinstance(parsed, dict) and isinstance(parsed.get("reply"), str):
+                return AIChatStructuredResponse(reply=parsed["reply"], board_update=None)
+    except json.JSONDecodeError:
+        pass
+
+    # Fallback: return plain reply with no board mutation.
     fallback_reply = call_openrouter(
         [
             {"role": "system", "content": "You are a concise project management assistant."},

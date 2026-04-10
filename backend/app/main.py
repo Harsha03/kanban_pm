@@ -18,11 +18,13 @@ from backend.app.ai import (
 )
 from backend.app.auth import create_token, hash_password, require_auth, verify_password
 from backend.app.db import (
+    _create_board_for_user,
     create_board,
     create_user,
     delete_board,
     get_board,
     get_board_by_id,
+    get_connection,
     get_user_by_id,
     get_user_by_id_with_hash,
     get_user_by_username,
@@ -46,7 +48,6 @@ from backend.app.models import (
     UserResponse,
 )
 
-# Configure structured logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -71,12 +72,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure rate limiting
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -156,7 +155,6 @@ def change_password(
     if not verify_password(current_password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Current password is incorrect")
 
-    from backend.app.db import get_connection
     new_hash = hash_password(new_password)
     with get_connection() as conn:
         conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, auth["sub"]))
@@ -237,8 +235,6 @@ def duplicate_board(board_id: int, auth: dict = Depends(require_auth)) -> dict:
     if result is None:
         raise HTTPException(status_code=404, detail="Board not found")
     new_name = f"{result['name']} (copy)"
-    from backend.app.db import _create_board_for_user, get_connection
-
     with get_connection() as conn:
         new_board = _create_board_for_user(
             conn, auth["sub"], new_name, result["description"], result["board"]
@@ -250,8 +246,6 @@ def duplicate_board(board_id: int, auth: dict = Depends(require_auth)) -> dict:
 @app.post("/api/boards/import", tags=["Boards"])
 def import_board(payload: ImportBoardRequest, auth: dict = Depends(require_auth)) -> dict:
     """Import a board from a JSON export."""
-    from backend.app.db import _create_board_for_user, get_connection
-
     with get_connection() as conn:
         result = _create_board_for_user(
             conn, auth["sub"], payload.name, payload.description, payload.board.model_dump()

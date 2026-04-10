@@ -51,11 +51,8 @@ def get_connection() -> sqlite3.Connection:
 def initialize_database() -> None:
     with get_connection() as conn:
         conn.executescript(SCHEMA_SQL)
-        # Migrate: add name/description columns if missing (upgrade from old schema)
         _migrate_boards_table(conn)
-        # Migrate: remove UNIQUE constraint on boards.user_id if present
         _migrate_remove_unique_user_id(conn)
-        # Create default user if none exists
         existing = conn.execute("SELECT id FROM users LIMIT 1").fetchone()
         if existing is None:
             conn.execute(
@@ -71,7 +68,6 @@ def initialize_database() -> None:
 
 
 def _migrate_boards_table(conn: sqlite3.Connection) -> None:
-    """Add name and description columns if they don't exist (schema migration)."""
     columns = {
         row["name"] for row in conn.execute("PRAGMA table_info(boards)").fetchall()
     }
@@ -82,8 +78,6 @@ def _migrate_boards_table(conn: sqlite3.Connection) -> None:
 
 
 def _migrate_remove_unique_user_id(conn: sqlite3.Connection) -> None:
-    """Remove UNIQUE constraint on boards.user_id to allow multiple boards per user."""
-    # Check if the old unique index exists
     idx = conn.execute(
         "SELECT name FROM sqlite_master WHERE type='index' AND name='sqlite_autoindex_boards_1'"
     ).fetchone()
@@ -145,13 +139,12 @@ def _normalize_board_shape(board: dict) -> dict:
     columns = board.get("columns", [])
 
     for index, column in enumerate(columns):
+        fallback = default_columns.get(column.get("id"))
         if "color" not in column:
-            fallback = default_columns.get(column.get("id"))
             columns[index]["color"] = (
                 fallback["color"] if fallback is not None else "#3B82F6"
             )
         if "icon" not in column:
-            fallback = default_columns.get(column.get("id"))
             columns[index]["icon"] = (
                 fallback["icon"] if fallback is not None else "inbox"
             )

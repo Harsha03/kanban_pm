@@ -19,11 +19,6 @@ export const useDarkMode = () => {
   const toggle = () => {
     setIsDark((prev) => {
       const next = !prev;
-      if (next) {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
       window.localStorage.setItem(STORAGE_KEY, String(next));
       return next;
     });

@@ -1,5 +1,3 @@
-"""Authentication utilities: password hashing, JWT tokens, and FastAPI dependency."""
-
 import os
 from datetime import UTC, datetime, timedelta
 
